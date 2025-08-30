@@ -385,9 +385,9 @@ if __name__ == "__main__":
                         choices=["llava", "qwen", "blip2", "minigpt4", "owl"])
     parser.add_argument("--method", type=str, required=True,
                         choices=["IKE", "MEND", "SERAC", "FT-L", "FT-V", "ROME"])
-    parser.add_argument("--train_json_path", type=str, default='data/dataset/final_dataset/train_dataset.json')
-    parser.add_argument("--eval1_json_path", type=str, default='data/dataset/final_dataset/val1_dataset.json')
-    parser.add_argument("--eval2_json_path", type=str, default='data/dataset/final_dataset/val2_dataset.json')
+    parser.add_argument("--train_json_path", type=str, default='data/blip2/train_dataset.json')
+    parser.add_argument("--eval1_json_path", type=str, default='data/blip2/val1_dataset.json')
+    parser.add_argument("--eval2_json_path", type=str, default='data/blip2/val2_dataset.json')
     parser.add_argument("--size", type=int, default=None)
     args = parser.parse_args()
 
