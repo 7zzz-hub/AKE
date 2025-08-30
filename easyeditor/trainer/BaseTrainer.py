@@ -184,7 +184,7 @@ class BaseTrainer:
         for epoch in range(start_epoch, self.epoches):
             for batch_idx, batch in enumerate(tqdm(self.train_loader, ncols=120, desc=f'Epoch {epoch+1}/{self.epoches}')):
                 
-                if initial_step<batch_idx:
+                if batch_idx < initial_step:
                     continue
                     
                 self.global_iter += 1
