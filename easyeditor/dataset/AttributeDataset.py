@@ -59,7 +59,6 @@ class AttributeDataset(BaseDataset):
         self.config = config
         self.tok = tokenizer
         self.max_length = 32
-        self.vis_root = "/root/autodl-tmp/vlkeb/attribute_edit/data/clevr-dataset-gen/CLEVR_CoGenT_v1.0/images"
         self.prompt = "Question: {} Please answer in one word. Short answer:"
 
         data = []
