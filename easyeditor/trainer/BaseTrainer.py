@@ -217,7 +217,7 @@ class BaseTrainer:
 
         if not self.config.eval_only:
             if (not self.config.debug) or self.config.save:
-                archive = torch.load("/root/autodl-tmp/vlkeb/attribute_edit/results/models/SERAC_MULTI/blip2_250814_114648-step_1.pt", map_location="cpu")
+                archive = torch.load(self.save_path+f'-step_{best_step}.pt', map_location="cpu")
                 LOG.info(
                     f"Loading best model from step {archive['step']}, elapsed time {archive['elapsed_time']}"
                 )
