@@ -387,7 +387,7 @@ if __name__ == "__main__":
                         choices=["IKE", "MEND", "SERAC", "FT-L", "FT-V", "ROME"])
     parser.add_argument("--train_json_path", type=str, default='data/blip2/train_dataset.json')
     parser.add_argument("--eval1_json_path", type=str, default='data/blip2/val1_dataset.json')
-    parser.add_argument("--eval2_json_path", type=str, default='data/blip2/val2_dataset.json')
+    parser.add_argument("--eval2_json_path", type=str, default='data/blip2/val2_dataset_tmp.json')
     parser.add_argument("--size", type=int, default=None)
     args = parser.parse_args()
 
@@ -405,7 +405,7 @@ if __name__ == "__main__":
         test_MEND_LLaVA(eval_json_path=args.eval1_json_path, size=args.size)
     elif args.model == "blip2" and args.method == "MEND":
         train_MEND_Blip2OPT(train_json_path=args.train_json_path, eval_json_path=args.eval1_json_path, size=args.size)
-        test_MEND_Blip2OPT(eval_json_path=args.eval1_json_path, size=args.size)
+        # test_MEND_Blip2OPT(eval_json_path=args.eval2_json_path, size=args.size)
 
     #FT
     elif args.model == "llava" and args.method == "FT-L":
