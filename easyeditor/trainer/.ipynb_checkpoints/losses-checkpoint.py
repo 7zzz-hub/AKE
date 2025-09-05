@@ -70,12 +70,12 @@ def multiclass_log_probs(config, pred, targ, shift=False):
         num_non_padding = (mask & end_mask).sum().float().item()
     acc = correct.sum() / num_non_padding
 
-    # from transformers import AutoTokenizer
-    # tokenizer = AutoTokenizer.from_pretrained("/root/autodl-tmp/vlkeb/attribute_edit/huggingface_cache/blip2-opt-2.7b")
-    # pred_text = [tokenizer.decode(pred, skip_special_tokens=True) for pred in pred_ids]
-    # token_text = [tokenizer.decode(pred, skip_special_tokens=True) for pred in targ]
-    # print("prediction:",pred_text)
-    # print("target:",token_text)
+    from transformers import AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained("/root/autodl-tmp/vlkeb/attribute_edit/huggingface_cache/opt-6.7b")
+    pred_text = [tokenizer.decode(pred, skip_special_tokens=True) for pred in pred_ids]
+    token_text = [tokenizer.decode(pred, skip_special_tokens=True) for pred in targ]
+    print("prediction:",pred_text)
+    print("target:",token_text)
 
     n_tokens = mask.float().sum()
     log_prob = (unmasked_log_probs * mask.float()).sum() / n_tokens

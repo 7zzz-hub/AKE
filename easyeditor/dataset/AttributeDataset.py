@@ -312,7 +312,7 @@ class AttributeDataset(BaseDataset):
             gen_img_2['labels'] = [self.tok(answer, add_special_tokens=False, return_tensors="pt",)["input_ids"] for answer in gen_img_a_2]
         else:
             gen_img_2['prompts_len'] = [[len(self.tok.encode(tmp, add_special_tokens=False)) for tmp in q] for q in gen_img_q_2]
-            gen_img_2['labels'] = [self.tok(answer, return_tensors="pt",)["input_ids"] for answer in gen_img_a_2]
+            gen_img_2['labels'] = [self.tok(answer, return_tensors="pt",padding=True)["input_ids"] for answer in gen_img_a_2]
         
         gen_img_3 = {}
         gen_img_3['image'] = gen_images_3

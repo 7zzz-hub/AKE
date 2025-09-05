@@ -171,7 +171,7 @@ class BaseTrainer:
         best_step = 0
 
         #checkpoint
-        checkpoint_file = "/root/autodl-tmp/vlkeb/attribute_edit/results/models/MEND/blip2_250829_141458-step_9000.pt"
+        checkpoint_file = None
         if checkpoint_file:
             self.load_state(checkpoint_file)
             start_epoch = round(self.global_iter / len(self.train_loader))

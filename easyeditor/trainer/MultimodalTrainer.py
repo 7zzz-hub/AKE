@@ -43,6 +43,8 @@ class MultimodalTrainer(BaseTrainer):
         else:
             raise NotImplementedError("unknown model class")
         
+        self.model_class = config.model_class
+
         if hasattr(self.model, "edit_lrs") and not self.config.eval_only:
             self.lr_opt = self.OptimizerClass([self.model.edit_lrs], config.lr_lr)
             if self.archive is not None:
@@ -70,8 +72,11 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["loc_1"]:
                     if k=="image":
-                        images = [Image.open(img_path).convert("RGB") for img_path in batch["loc_1"][k][idx]]
-                        tmp[k] = torch.stack([self.vis_processor(image).to(dtype=torch.float32) for image in images], dim=0)
+                        images = [Image.open(img_path) for img_path in batch["loc_1"][k][idx]]
+                        if self.model_class == "LLaVA":
+                            tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
+                        else:
+                            tmp[k] = torch.stack([self.vis_processor(image) for image in images], dim=0)
                     else:
                         tmp[k] = batch["loc_1"][k][idx]
                 base_outputs = self.model(tmp)
@@ -86,7 +91,10 @@ class MultimodalTrainer(BaseTrainer):
                 del tmp
 
             #locality_q_2
-            image = [self.vis_processor(Image.open(img_path).convert("RGB")).to(dtype=torch.float32) for img_path in batch["loc_2"]["image"]]
+            if self.model_class == "LLaVA":
+                image = [self.vis_processor(Image.open(img_path), return_tensors='pt')['pixel_values'] for img_path in batch["loc_2"]["image"]]
+            else:
+                image = [self.vis_processor(Image.open(img_path)) for img_path in batch["loc_2"]["image"]]
             batch["loc_2"]["image"] = torch.stack(image, dim=0)
             base_outputs = self.model(batch["loc_2"])
             if not isinstance(base_outputs, torch.Tensor):
@@ -99,7 +107,10 @@ class MultimodalTrainer(BaseTrainer):
         # Do the edit
         start = time.time()
 
-        image = [self.vis_processor(Image.open(img_path).convert("RGB")).to(dtype=torch.float32) for img_path in batch["edit_inner"]["image"]]
+        if self.model_class == "LLaVA":
+            image = [self.vis_processor(Image.open(img_path), return_tensors='pt')['pixel_values'] for img_path in batch["edit_inner"]["image"]]
+        else:
+            image = [self.vis_processor(Image.open(img_path)) for img_path in batch["edit_inner"]["image"]]
         batch["edit_inner"]["image"] = torch.stack(image, dim=0)
         edited_model, model_info = self.model.edit(batch["edit_inner"], batch["cond"])
 
@@ -114,8 +125,10 @@ class MultimodalTrainer(BaseTrainer):
             
             ################################ GENERALITY  ################################
 
-            # print("======================================generality======================================")
-            image = [self.vis_processor(Image.open(img_path).convert("RGB")).to(dtype=torch.float32) for img_path in batch["gen_1"]["image"]]
+            if self.model_class == "LLaVA":
+                image = [self.vis_processor(Image.open(img_path), return_tensors='pt')['pixel_values'] for img_path in batch["gen_1"]["image"]]
+            else:
+                image = [self.vis_processor(Image.open(img_path)) for img_path in batch["gen_1"]["image"]]
             batch["gen_1"]["image"] = torch.stack(image, dim=0)
             post_edit_outputs = edited_model(batch["gen_1"])
             if not isinstance(post_edit_outputs, torch.Tensor):
@@ -135,8 +148,11 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["gen_2"]:
                     if k=="image":
-                        images = [Image.open(img_path).convert("RGB") for img_path in batch["gen_2"][k][idx]]
-                        tmp[k] = torch.stack([self.vis_processor(image).to(dtype=torch.float32) for image in images], dim=0)
+                        images = [Image.open(img_path) for img_path in batch["gen_2"][k][idx]]
+                        if self.model_class == "LLaVA":
+                            tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
+                        else:
+                            tmp[k] = torch.stack([self.vis_processor(image) for image in images], dim=0)
                     else:
                         tmp[k] = batch["gen_2"][k][idx]
                 post_edit_outputs = edited_model(tmp)
@@ -155,7 +171,10 @@ class MultimodalTrainer(BaseTrainer):
             l_edit_2 /= post_edit_logits_2.shape[0]
 
             ###########
-            image = [self.vis_processor(Image.open(img_path).convert("RGB")).to(dtype=torch.float32) for img_path in batch["gen_3"]["image"]]
+            if self.model_class == "LLaVA":
+                image = [self.vis_processor(Image.open(img_path), return_tensors='pt')['pixel_values'] for img_path in batch["gen_3"]["image"]]
+            else:
+                image = [self.vis_processor(Image.open(img_path)) for img_path in batch["gen_3"]["image"]]
             batch["gen_3"]["image"] = torch.stack(image, dim=0)
             post_edit_outputs = edited_model(batch["gen_3"])
             if not isinstance(post_edit_outputs, torch.Tensor):
@@ -177,8 +196,11 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["gen_img_1"]:
                     if k=="image":
-                        images = [Image.open(img_path).convert("RGB") for img_path in batch["gen_img_1"][k][idx]]
-                        tmp[k] = torch.stack([self.vis_processor(image).to(dtype=torch.float32) for image in images], dim=0)
+                        images = [Image.open(img_path) for img_path in batch["gen_img_1"][k][idx]]
+                        if self.model_class == "LLaVA":
+                            tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
+                        else:
+                            tmp[k] = torch.stack([self.vis_processor(image) for image in images], dim=0)
                     else:
                         tmp[k] = batch["gen_img_1"][k][idx]
                 post_edit_outputs = edited_model(tmp)
@@ -202,8 +224,11 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["gen_img_2"]:
                     if k=="image":
-                        images = [Image.open(img_path).convert("RGB") for img_path in batch["gen_img_2"][k][idx]]
-                        tmp[k] = torch.stack([self.vis_processor(image).to(dtype=torch.float32) for image in images], dim=0)
+                        images = [Image.open(img_path) for img_path in batch["gen_img_2"][k][idx]]
+                        if self.model_class == "LLaVA":
+                            tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
+                        else:
+                            tmp[k] = torch.stack([self.vis_processor(image) for image in images], dim=0)
                     else:
                         tmp[k] = batch["gen_img_2"][k][idx]
                 post_edit_outputs = edited_model(tmp)
@@ -227,8 +252,11 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["gen_img_3"]:
                     if k=="image":
-                        images = [Image.open(img_path).convert("RGB") for img_path in batch["gen_img_3"][k][idx]]
-                        tmp[k] = torch.stack([self.vis_processor(image).to(dtype=torch.float32) for image in images], dim=0)
+                        images = [Image.open(img_path) for img_path in batch["gen_img_3"][k][idx]]
+                        if self.model_class == "LLaVA":
+                            tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
+                        else:
+                            tmp[k] = torch.stack([self.vis_processor(image) for image in images], dim=0)
                     else:
                         tmp[k] = batch["gen_img_3"][k][idx]
                 post_edit_outputs = edited_model(tmp)
@@ -248,14 +276,16 @@ class MultimodalTrainer(BaseTrainer):
 
             ################################ REPHRASE IMAGE ################################
 
-            # print("======================================rephrase_image======================================")
             post_image_edit_logits = []
             for idx in range(len(batch["re_image"]['labels'])):
                 tmp = {}
                 for k in batch["re_image"]:
                     if k=="image":
-                        images = [Image.open(img_path).convert("RGB") for img_path in batch["re_image"][k][idx]]
-                        tmp[k] = torch.stack([self.vis_processor(image).to(dtype=torch.float32) for image in images], dim=0)
+                        images = [Image.open(img_path) for img_path in batch["re_image"][k][idx]]
+                        if self.model_class == "LLaVA":
+                            tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
+                        else:
+                            tmp[k] = torch.stack([self.vis_processor(image) for image in images], dim=0)
                     else:
                         tmp[k] = batch["re_image"][k][idx]
                 post_image_edit_outputs = edited_model(tmp)
@@ -355,8 +385,11 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["loc_1"]:
                     if k=="image":
-                        images = [Image.open(img_path).convert("RGB") for img_path in batch["loc_1"][k][idx]]
-                        tmp[k] = torch.stack([self.vis_processor(image).to(dtype=torch.float32) for image in images], dim=0)
+                        images = [Image.open(img_path) for img_path in batch["loc_1"][k][idx]]
+                        if self.model_class == "LLaVA":
+                            tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
+                        else:
+                            tmp[k] = torch.stack([self.vis_processor(image) for image in images], dim=0)
                     else:
                         tmp[k] = batch["loc_1"][k][idx]
                 post_base_outputs = edited_model(tmp)
@@ -437,21 +470,24 @@ class MultimodalTrainer(BaseTrainer):
         ##
         # info_dict['gen_1_edit/log_prob'] = post_edit_dict_1["log_prob"]
         # info_dict['gen_1_edit/prob'] = post_edit_dict_1["prob"]
-        info_dict['gen_1_edit/acc'] = post_edit_dict_1["acc"]
+        info_dict['gen_1_edit/acc'] = post_edit_dict_1["acc"].item()
         ##
         # post_edit_log_probs_2 = [d["log_prob"] for d in post_edit_dict_2]
         # post_edit_probs_2 = [d["prob"] for d in post_edit_dict_2]
         # info_dict['gen_2_edit/log_prob'] = sum(post_edit_log_probs_2) / len(post_edit_log_probs_2)
         # info_dict['gen_2_edit/prob'] = sum(post_edit_probs_2) / len(post_edit_probs_2)
-        cnt = 0
+        cnt1 = 0
+        cnt2 = 0
         pred_ids = [d["pred_ids"] for d in post_edit_dict_2]
         trg = [d["targ_ids"] for d in post_edit_dict_2]
         for idx in range(len(pred_ids)):
             if pred_ids[idx][0]==trg[idx][0] and pred_ids[idx][1]==trg[idx][1]:
-                cnt += 1
+                cnt1 += 1
             if pred_ids[idx][2]==trg[idx][2] and pred_ids[idx][3]==trg[idx][3]:
-                cnt += 1
-        info_dict['gen_2_edit/acc'] = cnt / len(pred_ids) / 2
+                cnt2 += 1
+        # info_dict['gen_2_edit/acc'] = cnt / len(pred_ids) / 2
+        info_dict['gen_2_edit_1/acc'] = cnt1 / len(pred_ids) 
+        info_dict['gen_2_edit_2/acc'] = cnt2 / len(pred_ids) 
         ##
         # info_dict['gen_3_edit/log_prob'] = post_edit_dict_3["log_prob"]
         # info_dict['gen_3_edit/prob'] = post_edit_dict_3["prob"]
@@ -526,7 +562,8 @@ class MultimodalTrainer(BaseTrainer):
         loc_2_acc = f"{stats['loc_2/acc_val']:<12.5f}"
 
         gen_1_acc = f"{stats['gen_1_edit/acc_val']:<12.5f}"
-        gen_2_acc = f"{stats['gen_2_edit/acc_val']:<12.5f}"
+        gen_2_acc_1 = f"{stats['gen_2_edit_1/acc_val']:<12.5f}"
+        gen_2_acc_2 = f"{stats['gen_2_edit_2/acc_val']:<12.5f}"
         gen_3_acc = f"{stats['gen_3_edit/acc_val']:<12.5f}"
 
         gen_img_1_acc = f"{stats['gen_img_1_edit/acc_val']:<12.5f}"
@@ -535,7 +572,7 @@ class MultimodalTrainer(BaseTrainer):
 
         LOG.info(
           f"Step {prog} inner_acc: {inner_acc} rephrase_image_acc: {rephrase_img_acc} loc_1_acc: {loc_1_acc} loc_2_acc: {loc_2_acc}\
-          gen_1_acc: {gen_1_acc} gen_2_acc: {gen_2_acc} gen_3_acc: {gen_3_acc} \
+          gen_1_acc: {gen_1_acc} gen_2_acc_1: {gen_2_acc_1} gen_2_acc_2: {gen_2_acc_2} gen_3_acc: {gen_3_acc} \
           gen_1_image_acc: {gen_img_1_acc} gen_2_image_acc: {gen_img_2_acc} gen_3_image_acc: {gen_img_3_acc} \
           it_time: {elapsed:.4f}"
         )
