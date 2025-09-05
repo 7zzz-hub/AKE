@@ -1,5 +1,5 @@
 # Model
-device: 1
+device: 0
 alg_name: "MEND"
 name: huggingface_cache/opt-6.7b
 model_name: blip2
@@ -40,7 +40,7 @@ act: relu
 rank: 1920
 mlp_class: IDMLP
 shared: True
-archive: results/models/MEND/blip2_250814_201023-step_100.pt
+archive: results/models/MEND/blip2_250827_203539-step_4500.pt
 
 # Train
 batch_size: 1

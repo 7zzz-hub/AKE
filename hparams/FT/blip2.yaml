@@ -1,5 +1,5 @@
 # Model
-device: 1
+device: 0
 
 alg_name: "FT"
 name: huggingface_cache/opt-6.7b

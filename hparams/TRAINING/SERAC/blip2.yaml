@@ -4,7 +4,7 @@ device: 0
 name: huggingface_cache/opt-6.7b
 model_name: blip2
 model_class: Blip2OPT
-small_name: huggingface_cache/opt-125m
+small_name: huggingface_cache/opt-1.3b
 tokenizer_class: GPT2Tokenizer
 tokenizer_name: huggingface_cache/opt-6.7b
 cls_name: huggingface_cache/distilbert-base-cased
@@ -20,7 +20,7 @@ inner_params:
 # Method
 alg: SERAC_MULTI
 lr: 1e-5
-edit_lr: 1e-1
+edit_lr: 1e-3
 seed: 0
 lr_lr: 0.0
 cedit: 0.1
