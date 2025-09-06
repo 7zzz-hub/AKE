@@ -37,7 +37,7 @@ CLEVR is a diagnostic dataset designed to evaluate **compositional language unde
 cd AKE-main
 ```
 2. **install Dependencies**
-Please refer to the envs/vlkeb_easyedit.yml file for environment setup.
+<br> Please refer to the envs/vlkeb_easyedit.yml file for environment setup.
 
 3. **Execute Editing Task**
 Basic command format:
