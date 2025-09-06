@@ -82,7 +82,7 @@ Links are in the following:
     </tr>
     <tr>
         <td><a href="https://huggingface.co/facebook/opt-6.7b">opt-6.7b</a></td>
-        <td><a href="https://huggingface.co/facebook/opt-1.3b">opt-125m</a></td>
+        <td><a href="https://huggingface.co/facebook/opt-1.3b">opt-1.3b</a></td>
         <td><a href="https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/BLIP2/blip2_pretrained_opt6.7b.pth">blip2_pretrained_opt6.7b.pth</a></td>
     </tr>
     <tr>
