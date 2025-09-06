@@ -72,7 +72,7 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["loc_1"]:
                     if k=="image":
-                        images = [Image.open(img_path) for img_path in batch["loc_1"][k][idx]]
+                        images = [Image.open(img_path).convert("RGB") for img_path in batch["loc_1"][k][idx]]
                         if self.model_class == "LLaVA":
                             tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
                         else:
@@ -94,7 +94,7 @@ class MultimodalTrainer(BaseTrainer):
             if self.model_class == "LLaVA":
                 image = [self.vis_processor(Image.open(img_path), return_tensors='pt')['pixel_values'] for img_path in batch["loc_2"]["image"]]
             else:
-                image = [self.vis_processor(Image.open(img_path)) for img_path in batch["loc_2"]["image"]]
+                image = [self.vis_processor(Image.open(img_path).convert("RGB")) for img_path in batch["loc_2"]["image"]]
             batch["loc_2"]["image"] = torch.stack(image, dim=0)
             base_outputs = self.model(batch["loc_2"])
             if not isinstance(base_outputs, torch.Tensor):
@@ -110,7 +110,7 @@ class MultimodalTrainer(BaseTrainer):
         if self.model_class == "LLaVA":
             image = [self.vis_processor(Image.open(img_path), return_tensors='pt')['pixel_values'] for img_path in batch["edit_inner"]["image"]]
         else:
-            image = [self.vis_processor(Image.open(img_path)) for img_path in batch["edit_inner"]["image"]]
+            image = [self.vis_processor(Image.open(img_path).convert("RGB")) for img_path in batch["edit_inner"]["image"]]
         batch["edit_inner"]["image"] = torch.stack(image, dim=0)
         edited_model, model_info = self.model.edit(batch["edit_inner"], batch["cond"])
 
@@ -128,7 +128,7 @@ class MultimodalTrainer(BaseTrainer):
             if self.model_class == "LLaVA":
                 image = [self.vis_processor(Image.open(img_path), return_tensors='pt')['pixel_values'] for img_path in batch["gen_1"]["image"]]
             else:
-                image = [self.vis_processor(Image.open(img_path)) for img_path in batch["gen_1"]["image"]]
+                image = [self.vis_processor(Image.open(img_path).convert("RGB")) for img_path in batch["gen_1"]["image"]]
             batch["gen_1"]["image"] = torch.stack(image, dim=0)
             post_edit_outputs = edited_model(batch["gen_1"])
             if not isinstance(post_edit_outputs, torch.Tensor):
@@ -148,7 +148,7 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["gen_2"]:
                     if k=="image":
-                        images = [Image.open(img_path) for img_path in batch["gen_2"][k][idx]]
+                        images = [Image.open(img_path).convert("RGB") for img_path in batch["gen_2"][k][idx]]
                         if self.model_class == "LLaVA":
                             tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
                         else:
@@ -174,7 +174,7 @@ class MultimodalTrainer(BaseTrainer):
             if self.model_class == "LLaVA":
                 image = [self.vis_processor(Image.open(img_path), return_tensors='pt')['pixel_values'] for img_path in batch["gen_3"]["image"]]
             else:
-                image = [self.vis_processor(Image.open(img_path)) for img_path in batch["gen_3"]["image"]]
+                image = [self.vis_processor(Image.open(img_path).convert("RGB")) for img_path in batch["gen_3"]["image"]]
             batch["gen_3"]["image"] = torch.stack(image, dim=0)
             post_edit_outputs = edited_model(batch["gen_3"])
             if not isinstance(post_edit_outputs, torch.Tensor):
@@ -196,7 +196,7 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["gen_img_1"]:
                     if k=="image":
-                        images = [Image.open(img_path) for img_path in batch["gen_img_1"][k][idx]]
+                        images = [Image.open(img_path).convert("RGB") for img_path in batch["gen_img_1"][k][idx]]
                         if self.model_class == "LLaVA":
                             tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
                         else:
@@ -224,7 +224,7 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["gen_img_2"]:
                     if k=="image":
-                        images = [Image.open(img_path) for img_path in batch["gen_img_2"][k][idx]]
+                        images = [Image.open(img_path).convert("RGB") for img_path in batch["gen_img_2"][k][idx]]
                         if self.model_class == "LLaVA":
                             tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
                         else:
@@ -252,7 +252,7 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["gen_img_3"]:
                     if k=="image":
-                        images = [Image.open(img_path) for img_path in batch["gen_img_3"][k][idx]]
+                        images = [Image.open(img_path).convert("RGB") for img_path in batch["gen_img_3"][k][idx]]
                         if self.model_class == "LLaVA":
                             tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
                         else:
@@ -281,7 +281,7 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["re_image"]:
                     if k=="image":
-                        images = [Image.open(img_path) for img_path in batch["re_image"][k][idx]]
+                        images = [Image.open(img_path).convert("RGB") for img_path in batch["re_image"][k][idx]]
                         if self.model_class == "LLaVA":
                             tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
                         else:
@@ -385,7 +385,7 @@ class MultimodalTrainer(BaseTrainer):
                 tmp = {}
                 for k in batch["loc_1"]:
                     if k=="image":
-                        images = [Image.open(img_path) for img_path in batch["loc_1"][k][idx]]
+                        images = [Image.open(img_path).convert("RGB") for img_path in batch["loc_1"][k][idx]]
                         if self.model_class == "LLaVA":
                             tmp[k] = torch.stack([self.vis_processor(image, return_tensors='pt')['pixel_values'] for image in images], dim=0)
                         else:

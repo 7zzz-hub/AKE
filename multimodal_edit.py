@@ -414,9 +414,9 @@ if __name__ == "__main__":
         test_FT_LLaVA_mmproj(eval_json_path=args.eval1_json_path, size=args.size)
 
     elif args.model == "blip2" and args.method == "FT-L":
-        test_FT_Blip2OPT(eval_json_path=args.eval2_json_path, size=args.size)
+        test_FT_Blip2OPT(eval_json_path=args.eval1_json_path, size=args.size)
     elif args.model == "blip2" and args.method == "FT-V":
-        test_FT_Blip2OPT_QFormer(eval_json_path=args.eval2_json_path, size=args.size)
+        test_FT_Blip2OPT_QFormer(eval_json_path=args.eval1_json_path, size=args.size)
         
     else:
         raise ValueError(f"未知模型: {args.model}")
