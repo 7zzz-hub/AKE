@@ -1,0 +1,13 @@
+############### 识别并生成 mask 照片 #######################
+1. github 下载资源：gh repo clone IDEA-Research/Grounded-Segment-Anything
+
+2. 打开 grounded_sam.ipynb
+（1）准备环境
+（2）
+
+
+
+############### 生成 paired 照片 #######################
+1. 打开 /root/autodl-tmp/mllm_ke/akedit/pair_images/paired_images.ipynb，生成对应的新的json文件
+2. 用 blender 生成新图片
+3. 用模型加以验证，而后筛选出 subset

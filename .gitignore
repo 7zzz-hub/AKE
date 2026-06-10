@@ -1,0 +1,7 @@
+dataset/CLEVR_CoGenT_v1.0/*
+dataset/imagenet/*
+dataset/images_modified/
+pair_images/
+mask_images制作过程.txt 
+zm_k/
+results/

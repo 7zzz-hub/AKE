@@ -1,0 +1,37 @@
+# config.yaml
+
+# Model related parameters
+model_name: "llava"
+model_path: "/root/autodl-tmp/mllm_ke/AKE-main/huggingface_cache/llava-v1.5-7b"
+vision_model_path: "/root/autodl-tmp/mllm_ke/AKE-main/huggingface_cache/clip-vit-large-patch14-336"
+device: "cuda"
+
+# Data related parameters
+img_root: "/root/autodl-tmp/mllm_ke/AKE-main/data/CLEVR_CoGenT_v1.0/images"
+img_root_modified: "/root/autodl-tmp/mllm_ke/akedit/dataset/images_modified/llava"
+img_masks: "/root/autodl-tmp/mllm_ke/akedit/dataset/images_masks/llava_alt"
+patch_num: 577
+image_size: 336
+
+dataset_path: "/root/autodl-tmp/mllm_ke/AKE-main/data/llava_new/val2_dataset.json"
+# image_direction_dataset_dir: "/root/autodl-tmp/mllm_ke/akedit/dataset/CLEVR_CoGenT_v1.0/images/loc_data"
+image_direction_dataset_dir: "/root/autodl-tmp/mllm_ke/akedit/dataset/imagenet"
+
+# Training related parameters
+lr: 0.0001
+epochs: 10
+weight_decay: 0.01
+max_length: 512
+
+# Editing method parameters
+edit_layers: 15
+
+# Path parameters
+output_dir: "/root/autodl-tmp/mllm_ke/akedit/results"
+cache_dir: "./cache"
+log_dir: "./logs"
+
+# Other parameters
+seed: 42
+debug: false
+resume: null
