@@ -1,0 +1,5 @@
+data/clevr_dataset/CLEVR_CoGenT_v1.0/*
+results/*
+huggingface_cache/*
+hidden_states/*
+data/supple_dataset/*image*
