@@ -46,10 +46,17 @@ class MultimodalTrainer(BaseTrainer):
         else:
             self.lr_opt = None
 
+        if self.config.dataset_type=="AttributeDataset":
+            self.loc_1 = "Loc_in"
+            self.loc_2 = "Loc_out"
+        elif self.config.dataset_type=="SuppleDataset":
+            self.loc_1 = "Loc_m"
+            self.loc_2 = "Loc_t"
+
     def edit_step(self, batch, training: bool):
 
         record = {
-            'rel':{}, 'Loc_in':{},'Loc_out':{},
+            'rel':{}, self.loc_1:{},self.loc_2:{},
             're_image':{},'gen1':{},'gen2':{},
         }
 
@@ -63,12 +70,12 @@ class MultimodalTrainer(BaseTrainer):
         with torch.no_grad():
             
             # Loc_in
-            base_logits_1, _ = answer_single_question(self.config, self.vis_processor, self.model, batch["Loc_in"])
-            compute_single_score(self.config, self.model, base_logits_1, _, batch["Loc_in"], record['Loc_in'])
+            base_logits_1, _ = answer_single_question(self.config, self.vis_processor, self.model, batch[self.loc_1])
+            compute_single_score(self.config, self.model, base_logits_1, _, batch[self.loc_1], record[self.loc_1])
 
             # Loc_out
-            base_logits_2, _ = answer_single_question(self.config, self.vis_processor, self.model, batch["Loc_out"])
-            compute_single_score(self.config, self.model, base_logits_2, _, batch["Loc_out"], record['Loc_out'])
+            base_logits_2, _ = answer_single_question(self.config, self.vis_processor, self.model, batch[self.loc_2])
+            compute_single_score(self.config, self.model, base_logits_2, _, batch[self.loc_2], record[self.loc_2])
 
         ###############
         # POST-EDIT
@@ -127,8 +134,8 @@ class MultimodalTrainer(BaseTrainer):
 
             ################################ LOCALITY ################################
                 
-            l_Loc_in, post_base_logits_1 = edit_loc_data(self.config, self.vis_processor, edited_model, kl_loc_loss, base_logits_1, batch["Loc_in"])
-            l_Loc_out, post_base_logits_2 = edit_loc_data(self.config, self.vis_processor, edited_model, kl_loc_loss, base_logits_2, batch["Loc_out"])
+            l_Loc_in, post_base_logits_1 = edit_loc_data(self.config, self.vis_processor, edited_model, kl_loc_loss, base_logits_1, batch[self.loc_1])
+            l_Loc_out, post_base_logits_2 = edit_loc_data(self.config, self.vis_processor, edited_model, kl_loc_loss, base_logits_2, batch[self.loc_2])
 
 
         ###############
@@ -209,8 +216,8 @@ class MultimodalTrainer(BaseTrainer):
         
         
         ### locality ###
-        record['Loc_in']['acc'] = info_dict["Loc_in/acc"] = sum(post_base_topk_1.view(-1) == base_topk_1.view(-1))/post_base_topk_1.view(-1).shape[0]
-        record['Loc_in']['acc'] = info_dict["Loc_out/acc"] = sum(post_base_topk_2.view(-1) == base_topk_2.view(-1))/post_base_topk_2.view(-1).shape[0]
+        record[self.loc_1]['acc'] = info_dict["Loc_in/acc"] = sum(post_base_topk_1.view(-1) == base_topk_1.view(-1))/post_base_topk_1.view(-1).shape[0]
+        record[self.loc_1]['acc'] = info_dict["Loc_out/acc"] = sum(post_base_topk_2.view(-1) == base_topk_2.view(-1))/post_base_topk_2.view(-1).shape[0]
 
         l_base = torch.tensor(0.0)
         l_total = l_total_edit + self.config.cbase * l_base

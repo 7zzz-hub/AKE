@@ -1,13 +1,13 @@
 # Model
 device: 0
 
-name: hugging_cache/Qwen-VL
+name: huggingface_cache/Qwen2-VL
 model_name: qwen-vl
 model_class: qwen-vl
-small_name: hugging_cache/Qwen-7b
+small_name: huggingface_cache/Qwen2-7B
 tokenizer_class: QWenTokenizer
-tokenizer_name: hugging_cache/Qwen-VL
-cls_name: hugging_cache/distilbert-base-cased/
+tokenizer_name: huggingface_cache/Qwen2-VL
+cls_name: huggingface_cache/distilbert-base-cased/
 cls_class: AutoModel 
 inner_params:
 - transformer.h.29.mlp.w1.weight
@@ -81,7 +81,3 @@ qformer_checkpoint: null
 qformer_name_or_path: null
 state_dict_file: null
 # pretrained_ckpt: null
-
-# image
-coco_image: datasets/VLKEB_images/mmkb_images
-rephrase_image: datasets/VLKEB_images/mmkb_images

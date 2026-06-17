@@ -115,11 +115,13 @@ def get_model(config):
             f"Loading model with name {config.model_name}"
         )
         
-        from transformers import Qwen2_5_VLForConditionalGeneration
-        model = Qwen2_5_VLForConditionalGeneration.from_pretrained(config.name, 
-                                                     device_map=f"cuda:{config.device}", 
-                                                     trust_remote_code=True,
-                                                     torch_dtype=torch.float16)
+        from transformers import Qwen2VLForConditionalGeneration
+        model = Qwen2VLForConditionalGeneration.from_pretrained(config.name, 
+                                                                   device_map=f"cuda:{config.device}", 
+                                                                   trust_remote_code=True,
+                                                                   torch_dtype=torch.bfloat16,
+                                                                   attn_implementation="flash_attention_2"
+                                                                  )
     elif config.model_name == "owl-2":
         LOG.info(
             f"Loading model with name {config.model_name}"

@@ -40,10 +40,15 @@ class AttributeDataset:
         if key not in sample:
             sample[key] = []
 
+        if self.config.model_class == "blip2":
+            answer = " " + answer
+        elif self.config.model_class == "LLaVA":
+            answer = answer.capitalize()
+            
         sample[key].append({
             'image': image,
             'question': question,
-            'answer': answer.capitalize() if self.config.model_class in ["LLaVA","qwen-vl"] else " " + answer
+            'answer':  answer
         })
 
 
@@ -112,7 +117,7 @@ class AttributeDataset:
             elif self.config.model_class == "Blip2OPT":
                 return self.prompt.format(question) + answer
             elif self.config.model_class == "qwen-vl":
-                return self.processor.apply_chat_template(qwenvl_qa(image, question), tokenize=False) + " " + answer.capitalize()
+                return self.processor.apply_chat_template(qwenvl_qa(image, question), tokenize=False) + " " + answer
         
 
         text_inputs = [concat_qa(image,p,t) for image, p, t in zip(images, prompts, targets)]

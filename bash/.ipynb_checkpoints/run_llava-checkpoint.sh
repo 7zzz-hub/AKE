@@ -4,72 +4,61 @@
 ##### LLaVA #####
 #########################
 
-# pip install transformers==4.37
-# python multimodal_edit.py \
-#     --model "llava" \
-#     --config_path "hparams/TRAINING/MEND/llava.yaml" \
-#     --method "MEND" \
-#     --train_json_path "data/llava_new/train_dataset.json" \
-#     --eval_json_path "data/llava_new/val1_dataset.json" \
-#     --mode "train"
-
-# python multimodal_edit.py \
-#     --model "llava" \
-#     --config_path "hparams/MEND/llava.yaml" \
-#     --method "MEND" \
-#     --train_json_path "data/llava_new/train_dataset.json" \
-#     --eval_json_path "data/llava_new/val1_dataset.json" \
-#     --mode "eval"
-
-# python multimodal_edit.py \
-#     --model "llava" \
-#     --config_path "hparams/MEND/llava.yaml" \
-#     --method "MEND" \
-#     --train_json_path "data/llava_new/train_dataset.json" \
-#     --eval_json_path "data/llava_new/val2_dataset.json" \
-#     --mode "eval"
+pip install transformers==4.37
 
 
-
-
-# python multimodal_edit.py \
-#     --model "llava" \
-#     --config_path "hparams/FT/llava.yaml" \
-#     --method "FT-L" \
-#     --train_json_path "data/supple_dataset/llava/train_dataset.json" \
-#     --eval_json_path "data/supple_dataset/llava/eval_dataset.json" \
-#     --mode "eval"
-
-# python multimodal_edit.py \
-#     --model "llava" \
-#     --config_path "hparams/FT/llava_mmproj.yaml" \
-#     --method "FT-V" \
-#     --train_json_path "data/supple_dataset/llava/train_dataset.json" \
-#     --eval_json_path "data/supple_dataset/llava/eval_dataset.json" \
-#     --mode "eval"
-
-# pip install transformers==4.37
-# python multimodal_edit.py \
-#     --model "llava" \
-#     --config_path "hparams/FT/llava_mmproj.yaml" \
-#     --method "FT-V" \
-#     --train_json_path "data/llava_new/train_dataset.json" \
-#     --eval_json_path "data/clevr_dataset/llava_new/val1_dataset.json" \
-#     --mode "eval" \
-#     --size 25
-
+### mend+clevr
 python multimodal_edit.py \
     --model "llava" \
-    --config_path "hparams/MEND/llava.yaml" \
+    --config_path "hparams/TRAINING/MEND/llava.yaml" \
+    --method "MEND" \
+    --train_json_path "data/clevr_dataset/llava/train_dataset.json" \
+    --eval_json_path "data/clevr_dataset/llava/val1_dataset.json" \
+    --mode "train" \
+    --dataset_type "AttributeDataset" \
+    --image "data/clevr_dataset/CLEVR_CoGenT_v1.0/images" \
+    --device 0 \
+    --checkpoint "results/models/MEND/llava_mend_clevr-step_12000.pt"
+
+
+### serac+clevr
+python multimodal_edit.py \
+    --model "llava" \
+    --config_path "hparams/TRAINING/SERAC/llava.yaml" \
+    --method "SERAC" \
+    --train_json_path "data/clevr_dataset/llava/train_dataset.json" \
+    --eval_json_path "data/clevr_dataset/llava/val1_dataset.json" \
+    --mode "train" \
+    --dataset_type "AttributeDataset" \
+    --image "data/clevr_dataset/CLEVR_CoGenT_v1.0/images" \
+    --device 0 \
+    --checkpoint "results/models/SERAC_MULTI/llava_serac_clevr-step_14000.pt"
+
+
+### mend+supple
+python multimodal_edit.py \
+    --model "llava" \
+    --config_path "hparams/TRAINING/MEND/llava.yaml" \
     --method "MEND" \
     --train_json_path "data/supple_dataset/llava/train_dataset.json" \
     --eval_json_path "data/supple_dataset/llava/eval_dataset.json" \
-    --mode "eval" \
+    --mode "train" \
+    --dataset_type "SuppleDataset" \
+    --image "data/supple_dataset/" \
+    --t_loc_image "data/supple_dataset/black_image.png" \
+    --device 0 
 
-# python multimodal_edit.py \
-#     --model "llava" \
-#     --config_path "hparams/FT/llava_mmproj.yaml" \
-#     --method "FT-V" \
-#     --train_json_path "data/supple_dataset/llava/train_dataset.json" \
-#     --eval_json_path "data/supple_dataset/llava/eval_dataset.json" \
-#     --mode "eval"
+
+### serac+supple
+python multimodal_edit.py \
+    --model "llava" \
+    --config_path "hparams/TRAINING/SERAC/llava.yaml" \
+    --method "SERAC" \
+    --train_json_path "data/supple_dataset/llava/train_dataset.json" \
+    --eval_json_path "data/supple_dataset/llava/eval_dataset.json" \
+    --mode "train" \
+    --dataset_type "SuppleDataset" \
+    --image "data/supple_dataset/" \
+    --t_loc_image "data/supple_dataset/black_image.png" \
+    --device 0 \
+    --checkpoint "results/models/SERAC_MULTI/llava_serac_supple-step_12000.pt"

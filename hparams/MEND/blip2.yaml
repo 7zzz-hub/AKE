@@ -73,14 +73,3 @@ results_dir: ./results
 qformer_checkpoint: huggingface_cache/blip2_pretrained_opt6.7b.pth
 qformer_name_or_path: huggingface_cache/bert-base-uncased
 state_dict_file: huggingface_cache/eva_vit_g.pth
-
-# image
-# dataset_type: AttributeDataset
-# image: data/CLEVR_CoGenT_v1.0/images/
-# m_loc_image: data/mmkb_images/
-# t_loc_image: data/black_image.jpg
-
-dataset_type: SuppleDataset
-image: data/supple_dataset
-m_loc_image: data/supple_dataset/mmkb_images/
-t_loc_image: data/supple_dataset/black_image.png

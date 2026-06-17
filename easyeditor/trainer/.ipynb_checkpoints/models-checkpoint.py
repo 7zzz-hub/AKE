@@ -4,8 +4,8 @@ import re
 import torch
 import torch.nn as nn
 import transformers
+
 from transformers import GPT2Tokenizer, GPT2TokenizerFast, AutoModel, AutoModelForCausalLM, AutoTokenizer
-# from transformers import LlavaPreTrainedModel
 
 from .utils import scr
 
@@ -114,9 +114,14 @@ def get_model(config):
         LOG.info(
             f"Loading model with name {config.model_name}"
         )
-        model = AutoModelForCausalLM.from_pretrained(config.name, 
-                                                     device_map=f"cuda:{config.device}", 
-                                                     trust_remote_code=True)
+        
+        from transformers import Qwen2VLForConditionalGeneration
+        model = Qwen2VLForConditionalGeneration.from_pretrained(config.name, 
+                                                                   device_map=f"cuda:{config.device}", 
+                                                                   trust_remote_code=True,
+                                                                   torch_dtype=torch.bfloat16,
+                                                                   attn_implementation="flash_attention_2"
+                                                                  )
     elif config.model_name == "owl-2":
         LOG.info(
             f"Loading model with name {config.model_name}"
@@ -179,7 +184,7 @@ def get_model(config):
 
     if config.no_grad_layers is not None:
         if config.half:
-            model.bfloat32()
+            model.half()
 
         def upcast(mod):
             modlist = None
@@ -196,7 +201,7 @@ def get_model(config):
             modlist[config.no_grad_layers :].to(torch.float32)
             modlist[config.no_grad_layers] = CastModule(modlist[config.no_grad_layers])
             modlist[-1] = CastModule(
-                modlist[-1], in_cast=torch.float32, out_cast=torch.bfloat32
+                modlist[-1], in_cast=torch.float32, out_cast=torch.float32
             )
 
         parents = []

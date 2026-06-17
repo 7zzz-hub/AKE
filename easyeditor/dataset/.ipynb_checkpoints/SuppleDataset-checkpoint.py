@@ -41,10 +41,15 @@ class SuppleDataset:
         if key not in sample:
             sample[key] = []
 
+        if self.config.model_class == "blip2":
+            answer = " " + answer
+        elif self.config.model_class == "LLaVA":
+            answer = answer.capitalize()
+            
         sample[key].append({
             'image': image,
             'question': question,
-            'answer': answer.capitalize() if self.config.model_class in ["LLaVA","qwen-vl"] else " " + answer
+            'answer':  answer
         })
 
 
@@ -66,7 +71,7 @@ class SuppleDataset:
             image_path = os.path.join(self.config.image, record["image"])
             re_image = os.path.join(self.config.image, record["rephrased_image"])
             gen_image = os.path.join(self.config.image, record["gen_image"]) if record.get("gen_image") is not None else None
-            m_loc_image = os.path.join(self.config.m_loc_image, record["m_loc_image"])
+            m_loc_image = os.path.join(self.config.image, record["m_loc_image"])
             t_loc_image = self.config.t_loc_image
             
             sample = {}
@@ -113,7 +118,7 @@ class SuppleDataset:
             elif self.config.model_class == "Blip2OPT":
                 return self.prompt.format(question) + answer
             elif self.config.model_class == "qwen-vl":
-                return self.processor.apply_chat_template(qwenvl_qa(image, question), tokenize=False) + " " + answer.capitalize()
+                return self.processor.apply_chat_template(qwenvl_qa(image, question), tokenize=False) + " " + answer
         
 
         text_inputs = [concat_qa(image,p,t) for image, p, t in zip(images, prompts, targets)]

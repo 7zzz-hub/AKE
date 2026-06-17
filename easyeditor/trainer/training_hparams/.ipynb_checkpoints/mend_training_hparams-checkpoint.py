@@ -5,21 +5,13 @@ import yaml
 
 
 @dataclass
-class SERACMultimodalTrainingHparams(HyperParams):
+class MENDTrainingHparams(HyperParams):
 
-    # Multimodal
-    qformer_name_or_path: str
-    state_dict_file: str
-    
     # Model
-    name: str
     model_name: str
     model_class: str
-    small_name: str
     tokenizer_class: str
     tokenizer_name: str
-    cls_name: str
-    cls_class: str
     inner_params: List[str]
 
     archive: Any
@@ -28,28 +20,27 @@ class SERACMultimodalTrainingHparams(HyperParams):
     alg: str
     lr: float
     edit_lr: float
-    seed: int
     lr_lr: float
+    seed: int
+    debug: bool
     cedit: float
-    iedit: float
     cloc: float
     cbase: float
     dropout: float
-    final_eval: bool
-    supervised: bool
     train_base: bool
     no_grad_layers: Any
-    soft_weighting: bool
-    checkpoint_grad: bool
-    cross_attend: bool
-    cos: bool
-    freeze: Any
-    square: bool
-    bound_embeds: bool
-    use_all_negatives: bool
-    freeze_cntr: bool
-    dist_heads: int
-    lora: Any
+    one_sided: bool
+    n_hidden: int
+    hidden_dim: Any
+    init: str
+    norm: bool
+    combine: bool
+    x_only: bool
+    delta_only: bool
+    act: str
+    rank: int
+    mlp_class: str
+    shared: bool
 
     # Output
     results_dir: str
@@ -58,33 +49,27 @@ class SERACMultimodalTrainingHparams(HyperParams):
     device: str
     batch_size: int
     model_save_pt: int
-    edit_bs: int
     silent: bool
     log_interval: int
+    eval_log_interval:int
+    final_eval:bool
     val_interval: int
     early_stop_patience: int
     early_stop_key: str
     eval_only: bool
     half: bool
     save: bool
-    debug: bool
-    log_errors: bool
-    unlikelihood: bool
+    verbose: bool
 
     val_batch_size: int
     accumulate_bs: int
     val_steps: int
     opt: str
     grad_clip: float
-    
-    qformer_checkpoint: str
-    max_length: int = 32
+
     model_parallel: bool = False
-    freeze_qformer: bool = True
     max_epochs: Optional[int] = None
     max_iters: Optional[int] = None
-    pretrained_ckpt: Optional[str] = None
-
 
     @classmethod
     def from_hparams(cls, hparams_name_or_path: str):
@@ -96,7 +81,6 @@ class SERACMultimodalTrainingHparams(HyperParams):
             config = yaml.safe_load(stream)
             config = super().construct_float_from_scientific_notation(config)
 
-
-        assert (config and config['alg'] == 'SERAC_MULTI') or print(f'SERACMultimodalTrainingHyperParams can not load from {hparams_name_or_path}, '
+        assert (config and config['alg'] == 'MEND') or print(f'MENDTrainingHyperParams can not load from {hparams_name_or_path}, '
                                                 f'alg_name is {config["alg"]} ')
         return cls(**config)

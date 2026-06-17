@@ -43,15 +43,15 @@ archive: null
 
 # Train
 batch_size: 1
-model_save_pt: 2000
+model_save_pt: 1000
 silent: False
 #max_epochs: 1
-max_iters: 25000
+max_iters: 50000
 log_interval: 100
-eval_log_interval: 2000
+eval_log_interval: 1000
 final_eval: True
-val_interval: 2000
-early_stop_patience: 2000
+val_interval: 1000
+early_stop_patience: 4000
 early_stop_key: "loss/total_edit_val"
 eval_only: False
 half: False
@@ -73,14 +73,3 @@ qformer_checkpoint: null
 qformer_name_or_path: null
 state_dict_file: null
 pretrained_ckpt: null
-
-# image
-# dataset_type: AttributeDataset
-# image: data/CLEVR_CoGenT_v1.0/images/
-# m_loc_image: data/mmkb_images/
-# t_loc_image: data/black_image.jpg
-
-dataset_type: SuppleDataset
-image: data/supple_dataset
-m_loc_image: data/supple_dataset/mmkb_images/
-t_loc_image: data/supple_dataset/black_image.png

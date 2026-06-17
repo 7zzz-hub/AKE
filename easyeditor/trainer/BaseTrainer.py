@@ -190,8 +190,7 @@ class BaseTrainer:
         # =========================
         # Resume checkpoint
         # =========================
-        # checkpoint_file = "/root/autodl-tmp/results/models/SERAC_MULTI/llava_260525_193109-step_7000.pt"
-        checkpoint_file = None
+        checkpoint_file = self.config.checkpoint if self.config.checkpoint is not None else None
         if not self.config.eval_only and checkpoint_file is not None:
     
             self.load_state(checkpoint_file)

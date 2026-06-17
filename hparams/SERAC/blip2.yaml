@@ -51,10 +51,12 @@ model_save_pt: 2000
 edit_bs: 1
 silent: False
 #max_epochs: 1
-max_iters: 50000
+max_iters: 40000
 log_interval: 100
+eval_log_interval: 2000
+final_eval: True
 val_interval: 2000
-early_stop_patience: 10000
+early_stop_patience: 6000
 early_stop_key: "loss/total_edit_val"
 eval_only: True
 half: False
@@ -77,10 +79,3 @@ results_dir: ./results
 qformer_checkpoint: huggingface_cache/blip2_pretrained_opt6.7b.pth
 qformer_name_or_path: huggingface_cache/bert-base-uncased
 state_dict_file: huggingface_cache/eva_vit_g.pth
-
-# image
-dataset_type: AttributeDataset
-image: data/CLEVR_CoGenT_v1.0/images/
-# m_loc_image: data/mmkb_images/
-m_loc_image: data/CLEVR_CoGenT_v1.0/images/
-t_loc_image: data/black_image.jpg
