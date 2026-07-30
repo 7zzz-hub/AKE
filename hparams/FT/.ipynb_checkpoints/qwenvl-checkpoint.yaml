@@ -2,11 +2,11 @@
 device: 0
 
 alg_name: "FT"
-name: huggingface_cache/Qwen-VL
+name: huggingface_cache/Qwen3-VL
 model_name: qwen-vl
 model_class: qwen-vl
 tokenizer_class: QWenTokenizer
-tokenizer_name: huggingface_cache/Qwen-VL
+tokenizer_name: huggingface_cache/Qwen3-VL
 inner_params:
 # - transformer.h.29.mlp.w1.weight
 # - transformer.h.29.mlp.w2.weight
@@ -14,13 +14,17 @@ inner_params:
 # - transformer.h.30.mlp.w1.weight
 # - transformer.h.30.mlp.w2.weight
 # - transformer.h.30.mlp.c_proj.weight
-- transformer.h.31.mlp.w1.weight
-- transformer.h.31.mlp.w2.weight
-- transformer.h.31.mlp.c_proj.weight
+# - transformer.h.31.mlp.w1.weight
+# - transformer.h.31.mlp.w2.weight
+# - transformer.h.31.mlp.c_proj.weight
 
+- model.language_model.layers.10.mlp.gate_proj.weight
+- model.language_model.layers.10.mlp.up_proj.weight
+- model.language_model.layers.10.mlp.down_proj.weight
+ 
 # Method
 alg: ft
-num_steps: 3
+num_steps: 5
 lr: 1e-6
 edit_lr: 1e-4
 lr_lr: 1e-4
@@ -81,9 +85,12 @@ qformer_name_or_path: None
 state_dict_file: None
 
 # image
-# image: data/CLEVR_CoGenT_v1.0/images
+dataset_type: AttributeDataset
+image: data/CLEVR_CoGenT_v1.0/images/
+m_loc_image: data/mmkb_images/
+t_loc_image: data/black_image.jpg
 
-image: /root/autodl-tmp/mllm_ke/supple_dataset/
-gen_image: /root/autodl-tmp/mllm_ke/supple_dataset/
-m_loc_image: /root/autodl-tmp/mllm_ke/supple_dataset/
-t_loc_image: /root/autodl-tmp/mllm_ke/supple_dataset/black_image.jpg
+# dataset_type: Supple
+# image: /root/autodl-tmp/mllm_ke/supple_dataset/
+# m_loc_image: data/
+# t_loc_image: data/black_image.jpg

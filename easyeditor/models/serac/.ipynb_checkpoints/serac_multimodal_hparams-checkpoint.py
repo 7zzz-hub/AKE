@@ -10,12 +10,6 @@ class SERACMultimodalHparams(HyperParams):
     # Multimodal
     qformer_name_or_path: str
     state_dict_file: str
-    
-    # Image_dir
-    dataset_type: str
-    image: str
-    m_loc_image: str
-    t_loc_image: str
         
     # Model
     name: str

@@ -22,7 +22,11 @@ class FT(EditableModel):
 
         if not str(self.config.device).startswith('cuda'):
             self.config.device = f'cuda:{self.config.device}'
-        self.model = self.model.to(torch.float32)
+        # Keep large multimodal models in the dtype selected by the loader.
+        # Converting the whole Qwen-VL model to fp32 roughly doubles memory use
+        # even though FT only optimizes the parameters listed in inner_params.
+        if "qwen-vl" not in self.config.model_name.lower():
+            self.model = self.model.to(torch.float32)
         self.save_weight = None
         
     def state_dict(self, destination=None, prefix="", keep_vars=False):

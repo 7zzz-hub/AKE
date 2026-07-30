@@ -2,27 +2,25 @@
 device: 0
 
 alg_name: "FT"
-name: huggingface_cache/Qwen2.5-VL
+name: huggingface_cache/Qwen3-VL
 model_name: qwen-vl
 model_class: qwen-vl
 tokenizer_class: QWenTokenizer
-tokenizer_name: huggingface_cache/Qwen2.5-VL
+tokenizer_name: huggingface_cache/Qwen3-VL
 inner_params:
 # - transformer.visual.transformer.resblocks.47.mlp.c_fc.weight
 # - transformer.visual.transformer.resblocks.47.mlp.c_fc.bias
 # - transformer.visual.transformer.resblocks.47.mlp.c_proj.weight
 # - transformer.visual.transformer.resblocks.47.mlp.c_proj.bias
 
-- visual.blocks.31.mlp.gate_proj.weight
-- visual.blocks.31.mlp.gate_proj.bias
-- visual.blocks.31.mlp.up_proj.weight
-- visual.blocks.31.mlp.up_proj.bias
-- visual.blocks.31.mlp.down_proj.weight
-- visual.blocks.31.mlp.down_proj.bias
+- model.visual.blocks.26.mlp.linear_fc1.weight
+- model.visual.blocks.26.mlp.linear_fc1.bias
+- model.visual.blocks.26.mlp.linear_fc2.weight
+- model.visual.blocks.26.mlp.linear_fc2.bias
  
 # Method
 alg: ft
-num_steps: 20
+num_steps: 10
 lr: 1e-6
 edit_lr: 2e-3
 lr_lr: 1e-4

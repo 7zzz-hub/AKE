@@ -48,8 +48,9 @@ class LLaVAOutput(ModelOutput):
     logits: torch.FloatTensor = None
     labels: torch.IntTensor = None
     attention_mask: torch.IntTensor = None
-
-
+    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
+    # output_attentions: Optional[Tuple[torch.FloatTensor]] = None
+    
 class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
     config_class = LlavaConfig
 
@@ -120,27 +121,9 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
             inputs_embeds=inputs_embeds,
             output_hidden_states=True,
             labels=targets,
-            return_dict=True
+            return_dict=True,
+            # output_attentions=True,
         )
-
-        # ###########################################################
-        # if 'What is the color' in samples['prompts'][0] or 'What is the shape' in samples['prompts'][0]:
-        #     # print(outputs.hidden_states)
-            
-        #     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        #     save_dir = "hidden_states"
-        #     os.makedirs(save_dir, exist_ok=True)
-        #     save_path = os.path.join(
-        #         save_dir,
-        #         f"/root/autodl-tmp/mllm_ke/Analysis/FT-V/hidden_states_{timestamp}.pt"
-        #     )
-        #     hidden_states = [
-        #         h[:,-samples['labels'].shape[1]:,:].detach().float().cpu()
-        #         for h in outputs.hidden_states
-        #     ]
-        #     torch.save(hidden_states, save_path)
-        #     # print(f"Saved to: {save_path}")
-        #     ###########################################################
 
         if torch.isnan(outputs.logits).any():
             print("LLaVA logits has nan!!!!!!!!!!!!!!!")
@@ -149,7 +132,9 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
             loss=outputs.loss,
             logits=outputs.logits,
             labels=targets,
-            attention_mask=attention_mask
+            attention_mask=attention_mask,
+            hidden_states=outputs.hidden_states,
+            # output_attentions=outputs.output_attentions
         )
 
     def prepare_inputs_for_generation(self, input_ids, past_key_values=None, inputs_embeds=None, **kwargs):

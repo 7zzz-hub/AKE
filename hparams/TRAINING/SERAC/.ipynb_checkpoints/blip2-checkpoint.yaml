@@ -20,7 +20,7 @@ inner_params:
 # Method
 alg: SERAC_MULTI
 lr: 1e-5
-edit_lr: 1e-4
+edit_lr: 1e-3
 seed: 0
 lr_lr: 0.0
 cedit: 0.1

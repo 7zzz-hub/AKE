@@ -45,7 +45,7 @@ use_all_negatives: False
 freeze_cntr: False
 dist_heads: 1
 lora: null
-archive: results/models/MEND/llava_260526_064348-step_6000.pt
+archive: results/ake-completed-checkpoints-2026-07-09-v3/checkpoints/ake-main/llava_serac_clevr/best/llava_serac_clevr.pt
 
 batch_size: 1
 model_save_pt: 5000

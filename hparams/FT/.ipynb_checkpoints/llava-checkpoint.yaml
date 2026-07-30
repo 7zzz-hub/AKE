@@ -8,15 +8,12 @@ model_class: LLaVA
 tokenizer_class: LlamaTokenizer
 tokenizer_name: huggingface_cache/llava-v1.5-7b
 inner_params:
-# - model.layers.29.mlp.down_proj.weight
-# - model.layers.29.mlp.up_proj.weight
-# - model.layers.30.mlp.down_proj.weight
-# - model.layers.30.mlp.up_proj.weight
 # - model.layers.31.mlp.down_proj.weight
 # - model.layers.31.mlp.up_proj.weight
 
-- model.layers.31.mlp.down_proj.weight
-- model.layers.31.mlp.up_proj.weight
+- model.layers.10.mlp.down_proj.weight
+- model.layers.10.mlp.up_proj.weight
+
  
 # Method
 alg: ft

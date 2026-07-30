@@ -48,8 +48,9 @@ class LLaVAOutput(ModelOutput):
     logits: torch.FloatTensor = None
     labels: torch.IntTensor = None
     attention_mask: torch.IntTensor = None
-
-
+    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
+    output_attentions: Optional[Tuple[torch.FloatTensor]] = None
+    
 class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
     config_class = LlavaConfig
 
@@ -70,25 +71,40 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
         text = [t for t in samples["text_input"]]
         tokenizer = AutoTokenizer.from_pretrained('huggingface_cache/llava-v1.5-7b', use_fast=False)
 
-        input_tokens = tokenizer(text, padding=True, return_tensors='pt').to(self.device)
-        input_ids = input_tokens.input_ids
-        attention_mask = input_tokens.attention_mask
-         
         if samples['image'] is not None:
-            image = samples["image"].to(self.dtype) # bsz, 3, image_size, image_size
-            image_token_ids = torch.ones((input_ids.shape[0]), dtype=input_ids.dtype, device=self.device).fill_(IMAGE_TOKEN_INDEX)
-            input_ids = torch.cat((input_ids[:, :1], image_token_ids.unsqueeze(1), input_ids[:, 1:]), dim=1)
+            # Replace the literal <image> placeholder in place.  The previous
+            # implementation inserted IMAGE_TOKEN_INDEX after BOS and left the
+            # literal <image> tokens in the prompt, which misplaced image features.
+            tokenized_ids = [
+                tokenizer_image_token(
+                    item, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
+                )
+                for item in text
+            ]
+            input_ids = torch.nn.utils.rnn.pad_sequence(
+                tokenized_ids,
+                batch_first=True,
+                padding_value=tokenizer.pad_token_id,
+            ).to(self.device)
+            attention_mask = input_ids.ne(tokenizer.pad_token_id)
+            image = samples["image"].to(self.dtype)  # bsz, 3, image_size, image_size
 
-            image_att_mask = torch.ones((input_ids.shape[0]), dtype=input_ids.dtype, device=self.device)
-            attention_mask = torch.cat((attention_mask[:, :1], image_att_mask.unsqueeze(1), attention_mask[:, 1:]), dim=1)
-            
-            targets = input_ids.masked_fill(input_ids==tokenizer.pad_token_id, IGNORE_INDEX)
+            targets = input_ids.masked_fill(
+                input_ids == tokenizer.pad_token_id, IGNORE_INDEX
+            )
             if samples['prompts_len']:
                 for i, prompt_len in enumerate(samples['prompts_len']):
                     targets[i, :prompt_len+1] = IGNORE_INDEX
         else:
+            input_tokens = tokenizer(
+                text, padding=True, return_tensors="pt"
+            ).to(self.device)
+            input_ids = input_tokens.input_ids
+            attention_mask = input_tokens.attention_mask
             image = None
-            targets = input_ids.masked_fill(input_ids==tokenizer.pad_token_id, IGNORE_INDEX)
+            targets = input_ids.masked_fill(
+                input_ids == tokenizer.pad_token_id, IGNORE_INDEX
+            )
             if samples['prompts_len']:
                 for i, prompt_len in enumerate(samples['prompts_len']):
                     targets[i, :prompt_len] = IGNORE_INDEX
@@ -120,27 +136,9 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
             inputs_embeds=inputs_embeds,
             output_hidden_states=True,
             labels=targets,
-            return_dict=True
+            return_dict=True,
+            output_attentions=True,
         )
-
-        # ###########################################################
-        # if 'What is the color' in samples['prompts'][0] or 'What is the shape' in samples['prompts'][0]:
-        #     # print(outputs.hidden_states)
-            
-        #     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        #     save_dir = "hidden_states"
-        #     os.makedirs(save_dir, exist_ok=True)
-        #     save_path = os.path.join(
-        #         save_dir,
-        #         f"/root/autodl-tmp/mllm_ke/Analysis/FT-V/hidden_states_{timestamp}.pt"
-        #     )
-        #     hidden_states = [
-        #         h[:,-samples['labels'].shape[1]:,:].detach().float().cpu()
-        #         for h in outputs.hidden_states
-        #     ]
-        #     torch.save(hidden_states, save_path)
-        #     # print(f"Saved to: {save_path}")
-        #     ###########################################################
 
         if torch.isnan(outputs.logits).any():
             print("LLaVA logits has nan!!!!!!!!!!!!!!!")
@@ -149,7 +147,9 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
             loss=outputs.loss,
             logits=outputs.logits,
             labels=targets,
-            attention_mask=attention_mask
+            attention_mask=attention_mask,
+            hidden_states=outputs.hidden_states,
+            output_attentions=outputs.attentions
         )
 
     def prepare_inputs_for_generation(self, input_ids, past_key_values=None, inputs_embeds=None, **kwargs):

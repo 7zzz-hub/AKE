@@ -69,7 +69,7 @@ class SuppleDataset:
             
             # all image
             image_path = os.path.join(self.config.image, record["image"])
-            re_image = os.path.join(self.config.image, record["rephrased_image"])
+            re_image = os.path.join(self.config.image, record["rephrase_image"])
             gen_image = os.path.join(self.config.image, record["gen_image"]) if record.get("gen_image") is not None else None
             m_loc_image = os.path.join(self.config.image, record["m_loc_image"])
             t_loc_image = self.config.t_loc_image

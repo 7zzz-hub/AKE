@@ -41,7 +41,7 @@ act: relu
 rank: 1920
 mlp_class: IDMLP
 shared: True
-archive: results/models/MEND/llava_260526_064348-step_6000.pt
+archive: results/models/MEND/llava_mend_clevr-step_12000.pt
 
 # Train
 batch_size: 1

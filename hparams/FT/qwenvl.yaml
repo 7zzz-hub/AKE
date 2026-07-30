@@ -2,11 +2,11 @@
 device: 0
 
 alg_name: "FT"
-name: huggingface_cache/Qwen2.5-VL
+name: huggingface_cache/Qwen3-VL
 model_name: qwen-vl
 model_class: qwen-vl
 tokenizer_class: QWenTokenizer
-tokenizer_name: huggingface_cache/Qwen2.5-VL
+tokenizer_name: huggingface_cache/Qwen3-VL
 inner_params:
 # - transformer.h.29.mlp.w1.weight
 # - transformer.h.29.mlp.w2.weight
@@ -18,9 +18,9 @@ inner_params:
 # - transformer.h.31.mlp.w2.weight
 # - transformer.h.31.mlp.c_proj.weight
 
-- model.layers.25.mlp.gate_proj.weight
-- model.layers.25.mlp.up_proj.weight
-- model.layers.25.mlp.down_proj.weight
+- model.language_model.layers.10.mlp.gate_proj.weight
+- model.language_model.layers.10.mlp.up_proj.weight
+- model.language_model.layers.10.mlp.down_proj.weight
  
 # Method
 alg: ft

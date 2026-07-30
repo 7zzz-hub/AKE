@@ -40,15 +40,15 @@ class AttributeDataset:
         if key not in sample:
             sample[key] = []
 
-        if self.config.model_class == "blip2":
+        if self.config.model_class == "Blip2OPT":
             answer = " " + answer
         elif self.config.model_class == "LLaVA":
             answer = answer.capitalize()
-            
+
         sample[key].append({
             'image': image,
             'question': question,
-            'answer':  answer
+            'answer': answer
         })
 
 
@@ -90,6 +90,7 @@ class AttributeDataset:
                 self.add_qa_pair(sample, "gen2", gen_image, record["gen2_q_1"], record["gen2_a"])
                 self.add_qa_pair(sample, "gen2", gen_image, record["gen2_q_2"], record["gen2_a"])
 
+            # masked image
             samples.append(sample)
 
         return samples

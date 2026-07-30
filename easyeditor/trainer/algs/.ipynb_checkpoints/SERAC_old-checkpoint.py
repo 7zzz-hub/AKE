@@ -69,7 +69,7 @@ class SERAC_MULTI(EditableModel):
                         config.small_name,
                         torch_dtype=torch.bfloat16, 
                         attn_implementation="flash_attention_2")
-                    
+
                     for k, v in self.replacement.named_parameters():
                         if '31' in k:
                             v.requires_grad = True
@@ -180,6 +180,7 @@ class SERAC_MULTI(EditableModel):
         assert len(res.unexpected_keys) == 0, "Shouldn't have any unexpected keys"
         return res
 
+
     def outer_parameters(self, grouped=False):
         if self.config.freeze is not None:
             modlist = None
@@ -211,7 +212,6 @@ class SERAC_MULTI(EditableModel):
                 model_params.extend(list(self.replacement.parameters()))
 
             
-
         extra_params = []
         if grouped:
             return [
@@ -220,6 +220,7 @@ class SERAC_MULTI(EditableModel):
             ]
         else:
             return model_params + extra_params
+
 
     def edit(self, batch, condition=None, detach_history=False):
         def detokenize(toks, tok):
@@ -382,11 +383,12 @@ class SERAC_MULTI(EditableModel):
                 if self.config.model_name == "blip2" or self.config.model_name == "minigpt4" or self.config.model_name == "llava":
                     super_out = self.model(*inputs, **kwargs)
                 elif self.config.model_name == "qwen-vl":
-                    super_out = self.model(inputs[0]['inputs'], **kwargs)
+                    super_out = self.model(**{k: v.to(self.model.device) for k, v in inputs[0]["inputs"].items()}, **kwargs)
+                    # super_out = self.model(inputs[0]['inputs'], **kwargs)
                 elif "owl-2" in self.config.model_name.lower():
                     _input = inputs[0]
                     super_out = self.model(_input['input_ids'].to(self.config.device), 
-                                           images=_input['image'].to(self.config.device, dtype=torch.float16),
+                                           images=_input['image'].to(self.config.device, dtype=torch.float32),
                                            **kwargs)
                 else:
                     super_out = super().forward(*inputs, **kwargs).float()
@@ -546,7 +548,8 @@ class SERAC_MULTI(EditableModel):
                     # if inputs[0]['prompts_len']:
                     #     for i, prompt_len in enumerate(inputs[0]['prompts_len']):
                     #         targets[i, :prompt_len+1] = IGNORE_INDEX
-                    (   input_ids,
+                    (
+                        input_ids,
                         _,
                         attention_mask,
                         _,
@@ -560,6 +563,11 @@ class SERAC_MULTI(EditableModel):
                         targets,
                         image
                     )
+
+                    if attention_mask is not None:
+                        if attention_mask.dtype not in (torch.bool, inputs_embeds.dtype):
+                            attention_mask = attention_mask.to(torch.bool)
+
                     rep_cls_logits = self.replacement(
                         inputs_embeds=inputs_embeds,
                         attention_mask=attention_mask,
@@ -570,10 +578,12 @@ class SERAC_MULTI(EditableModel):
                     rep_cls_logits = _logits(self.replacement(**rep_cls_inputs))[:, -base_probs.shape[1]:, :]
             elif self.config.model_name == "qwen-vl":
                 rep_cls_labels = rep_cls_inputs.pop("labels")
-                image = inputs[0]["image"]
+                image_pixel_values = inputs[0]["inputs"]["pixel_values"]
+                image_grid_thw = inputs[0]["inputs"]["image_grid_thw"]
 
-                if image is not None:
-                    img_embeds = self.model.transformer.visual.encode(image)
+                if image_pixel_values is not None and image_grid_thw is not None:
+                    img_embeds = self.model.visual(image_pixel_values, image_grid_thw)
+                    # img_embeds = self.model.transformer.visual.encode(image)
                     inputs_embeds = self.replacement.transformer.wte(rep_cls_inputs['input_ids'])
                     inputs_embeds = torch.cat((img_embeds, inputs_embeds), dim=1)
                     rep_cls_logits = self.replacement(
@@ -586,7 +596,7 @@ class SERAC_MULTI(EditableModel):
                 image = inputs[0]["image"]
                 if image is not None:
                     from ..mPLUG_Owl2.mplug_owl2.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX
-                    image = inputs[0]["image"].to(self.config.device, dtype=torch.float16)
+                    image = inputs[0]["image"].to(self.config.device, dtype=torch.bfloat16)
                     input_ids = rep_cls_inputs["input_ids"].to(self.config.device)
                     # input_ids = self.replacement_tok.tokenize(inputs[0]['text_input'])
                     attention_mask = rep_cls_inputs["attention_mask"]

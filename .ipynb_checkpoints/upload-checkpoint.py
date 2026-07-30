@@ -3,11 +3,11 @@ import os
 import tempfile
 
 api = HubApi()
-api.login("ms-7dca0759-a77a-48ee-8acf-d85adb30ac47")
+api.login("ms-26cd6c38-c344-4f57-aab5-4282398810d9")
 
 # 创建临时目录并复制文件
-file_path = "/root/autodl-tmp/mllm_ke/AKE-main/results/models/MEND/blip2_260521_231907-step_3000.pt"
-target_filename = "blip2_mend_clevr-step_3000.pt"
+file_path = "/root/autodl-tmp/mllm_ke/AKE-main/results/models/SERAC_MULTI/blip2_260624_202940-step_5000.pt"
+target_filename = "blip2_serac_clevr-step_5000.pt"
 
 with tempfile.TemporaryDirectory() as tmpdir:
     # 复制文件到临时目录

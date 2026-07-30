@@ -115,12 +115,22 @@ def get_model(config):
             f"Loading model with name {config.model_name}"
         )
         
-        from transformers import Qwen2VLForConditionalGeneration
-        model = Qwen2VLForConditionalGeneration.from_pretrained(config.name, 
+        qwen_config = transformers.AutoConfig.from_pretrained(
+            config.name, trust_remote_code=True
+        )
+        if qwen_config.model_type == "qwen2_vl":
+            model_class = transformers.Qwen2VLForConditionalGeneration
+        elif qwen_config.model_type == "qwen3_vl":
+            model_class = transformers.Qwen3VLForConditionalGeneration
+        else:
+            raise ValueError(
+                f"Unsupported Qwen-VL model type: {qwen_config.model_type}"
+            )
+        model = model_class.from_pretrained(config.name,
                                                                    device_map=f"cuda:{config.device}", 
                                                                    trust_remote_code=True,
                                                                    torch_dtype=torch.bfloat16,
-                                                                   attn_implementation="flash_attention_2"
+                                                                   attn_implementation="sdpa"
                                                                   )
     elif config.model_name == "owl-2":
         LOG.info(

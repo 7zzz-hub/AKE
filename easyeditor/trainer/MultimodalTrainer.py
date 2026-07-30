@@ -46,10 +46,10 @@ class MultimodalTrainer(BaseTrainer):
         else:
             self.lr_opt = None
 
-        if self.config.dataset_type=="AttributeDataset":
+        if self.config.dataset_type == "AttributeDataset":
             self.loc_1 = "Loc_in"
             self.loc_2 = "Loc_out"
-        elif self.config.dataset_type=="SuppleDataset":
+        elif self.config.dataset_type == "SuppleDataset":
             self.loc_1 = "Loc_m"
             self.loc_2 = "Loc_t"
 
@@ -76,6 +76,9 @@ class MultimodalTrainer(BaseTrainer):
             # Loc_out
             base_logits_2, _ = answer_single_question(self.config, self.vis_processor, self.model, batch[self.loc_2])
             compute_single_score(self.config, self.model, base_logits_2, _, batch[self.loc_2], record[self.loc_2])
+
+            # _, _ = answer_single_question(self.config, self.vis_processor, self.model, batch["re_image"], save_states=True)
+            
 
         ###############
         # POST-EDIT
@@ -105,6 +108,7 @@ class MultimodalTrainer(BaseTrainer):
             
             ############## REPHRASED IMAGE ##############
             
+            # post_image_edit_logits, post_image_batch_labels = answer_single_question(self.config, self.vis_processor, edited_model, batch["re_image"], save_states=True)
             post_image_edit_logits, post_image_batch_labels = answer_single_question(self.config, self.vis_processor, edited_model, batch["re_image"])
          
             if post_image_edit_logits.shape[1] > post_image_batch_labels.shape[1]:     
@@ -123,20 +127,22 @@ class MultimodalTrainer(BaseTrainer):
 
                 # rephrase
                 rephrase_image_edit_dict = compute_single_score(self.config, self.model, post_image_edit_logits, post_image_batch_labels, 
-                                                               batch['re_image'], record['re_image'])
+                                                                batch['re_image'], record['re_image'])
                 
                 # gen
                 if not training:
-                    logits, labels = answer_single_question(self.config, self.vis_processor, edited_model, batch["gen1"])
+                    logits, labels = answer_single_question(self.config, self.vis_processor, edited_model, batch["gen1"], save_states=True)
+                    
+                    # logits, labels = answer_single_question(self.config, self.vis_processor, edited_model, batch["gen1"])
                     gen1_dict = compute_single_score(self.config, self.model, logits, labels, batch["gen1"], record['gen1'])
+                    
                     logits, labels = answer_single_question(self.config, self.vis_processor, edited_model, batch["gen2"])
                     gen2_dict = compute_single_score(self.config, self.model, logits, labels, batch["gen2"], record['gen2'])
 
             ################################ LOCALITY ################################
-                
+
             l_Loc_in, post_base_logits_1 = edit_loc_data(self.config, self.vis_processor, edited_model, kl_loc_loss, base_logits_1, batch[self.loc_1])
             l_Loc_out, post_base_logits_2 = edit_loc_data(self.config, self.vis_processor, edited_model, kl_loc_loss, base_logits_2, batch[self.loc_2])
-
 
         ###############
         # LOSS
@@ -149,15 +155,9 @@ class MultimodalTrainer(BaseTrainer):
         if l_Loc_in.isnan() or l_Loc_out.isnan():
             print("l_loc is nan")
         
-        # l_loc = (l_Loc_in + l_Loc_out)/2
-        # l_total_edit = self.config.cedit * l_edit + self.config.cloc * l_loc + self.config.iedit * l_image_edit
+        l_loc = (l_Loc_in + l_Loc_out)/2
+        l_total_edit = self.config.cedit * l_edit + self.config.cloc * l_loc + self.config.iedit * l_image_edit
 
-        # if self.config.alg == "SERAC_MULTI":
-        #     l_total_edit = self.config.cedit * l_edit + self.config.cloc * l_Loc_out + self.config.iedit * l_image_edit
-        # else:
-        
-        l_total_edit = self.config.cedit * l_edit + self.config.cloc * (l_Loc_in+l_Loc_out) + self.config.iedit * l_image_edit
-        
         if training and self.config.alg != 'ft':
             safe_backward(l_total_edit, self.model.outer_parameters(), self.config.accumulate_bs, allow_unused=True)
 
@@ -183,7 +183,6 @@ class MultimodalTrainer(BaseTrainer):
             for _base_logits in base_logits_1
         ], dim=0)
 
-
         ################################ INFO DICT ################################
 
         ### loss ###
@@ -193,13 +192,12 @@ class MultimodalTrainer(BaseTrainer):
         info_dict['loss/Loc_in'] = l_Loc_in.item()
         info_dict['loss/Loc_out'] = l_Loc_out.item()
 
-
         ### reliability ###
         record['rel']['acc'] = info_dict['inner/acc'] = inner_edit_dict["acc"]
         record['rel']['exact_match_acc'] = inner_edit_dict['exact_match_acc']
         record['re_image']['acc'] = info_dict['rephrase_image/acc'] = rephrase_image_edit_dict["acc"]
         record['re_image']['exact_match_acc'] = rephrase_image_edit_dict['exact_match_acc']
-        
+
         ## generality ###
         def compute_acc_gen2(pred_list, targ_list):
             if pred_list[0]==targ_list[0] and pred_list[1]==targ_list[1]:
@@ -217,7 +215,7 @@ class MultimodalTrainer(BaseTrainer):
         
         ### locality ###
         record[self.loc_1]['acc'] = info_dict["Loc_in/acc"] = sum(post_base_topk_1.view(-1) == base_topk_1.view(-1))/post_base_topk_1.view(-1).shape[0]
-        record[self.loc_1]['acc'] = info_dict["Loc_out/acc"] = sum(post_base_topk_2.view(-1) == base_topk_2.view(-1))/post_base_topk_2.view(-1).shape[0]
+        record[self.loc_2]['acc'] = info_dict["Loc_out/acc"] = sum(post_base_topk_2.view(-1) == base_topk_2.view(-1))/post_base_topk_2.view(-1).shape[0]
 
         l_base = torch.tensor(0.0)
         l_total = l_total_edit + self.config.cbase * l_base

@@ -8,7 +8,7 @@ import json
 
 
 class AttributeDataset:
-    def __init__(self, data_path, size, config, eval_mode=True):
+    def __init__(self, data_path, size, config, mask_flag=None, eval_mode=True):
         self.data_path = data_path
         self.config = config
         self.size = size
@@ -33,26 +33,26 @@ class AttributeDataset:
         elif config.model_class == "qwen-vl":
             self.prompt = "{} Please answer in one word."
 
-        self.samples = self.build_data()
+        self.samples = self.build_data(mask_flag=None)
 
 
     def add_qa_pair(self, sample, key, image, question, answer):
         if key not in sample:
             sample[key] = []
 
-        if self.config.model_class == "blip2":
+        if self.config.model_class == "Blip2OPT":
             answer = " " + answer
         elif self.config.model_class == "LLaVA":
             answer = answer.capitalize()
-            
+
         sample[key].append({
             'image': image,
             'question': question,
-            'answer':  answer
+            'answer': answer
         })
 
 
-    def build_data(self):
+    def build_data(self, mask_flag=None):
         
         with open(self.data_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -89,6 +89,13 @@ class AttributeDataset:
                 self.add_qa_pair(sample, "gen1", gen_image, record["gen1_q"], record["gen1_a"])
                 self.add_qa_pair(sample, "gen2", gen_image, record["gen2_q_1"], record["gen2_a"])
                 self.add_qa_pair(sample, "gen2", gen_image, record["gen2_q_2"], record["gen2_a"])
+
+            # masked image & no background
+            if mask_flag is not None:
+                masked_image = os.path.join(self.config.masked_dir, record["masked_image"])
+                no_bg_img = self.config.no_bg_image
+                self.add_qa_pair(sample, "masked_img", masked_image, record["src"], record["alt"])
+                self.add_qa_pair(sample, "no_bg_img", no_bg_img, record["src"], "_")
 
             samples.append(sample)
 

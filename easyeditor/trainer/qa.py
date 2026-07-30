@@ -1,3 +1,5 @@
+from datetime import datetime
+import os
 from PIL import Image
 import torch
 import copy
@@ -52,7 +54,7 @@ def prepare_inputs(config, vis_processor, batch):
     return sample
 
 
-def forward_model(model, batch):
+def forward_model(model, batch, save_states=False):
 
     outputs = model(batch)
     if isinstance(outputs, torch.Tensor):
@@ -65,15 +67,59 @@ def forward_model(model, batch):
         else:
             attention_mask = torch.ones(logits.shape[:2], device=logits.device)
 
+    ## hidden states
+    # if save_states:     
+    #     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    #     save_dir = "hidden_states"
+    #     os.makedirs(save_dir, exist_ok=True)
+    #     save_path = os.path.join(
+    #         save_dir,
+    #         f"/root/autodl-tmp/mllm_ke/AKE-main/hidden_states/hidden_25/FT-L/hidden_states_{timestamp}.pt"
+    #     )
+    #     hidden_states = [
+    #         h[:,-batch['labels'].shape[1]:,:].detach().float().cpu()
+    #         for h in outputs.hidden_states
+    #     ]
+    #     torch.save(hidden_states, save_path)
+
+    # if save_states:
+    #     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    #     save_dir = "/root/autodl-tmp/mllm_ke/AKE-main/hidden_states/attention_akedit/FT-L"
+    #     os.makedirs(save_dir, exist_ok=True)
+    
+    #     save_path = os.path.join(save_dir, f"attentions_{timestamp}.pt")
+    
+    #     # outputs.attentions:
+    #     # tuple(num_layers)，每层 shape 通常为 [B, num_heads, seq_len, seq_len]
+    #     attentions = [
+    #         attn.detach().float().cpu()
+    #         for attn in outputs.output_attentions
+    #     ]
+    
+    #     save_obj = {
+    #         "attentions": attentions,
+    #         "input_ids": batch.get("input_ids", None).detach().cpu()
+    #             if batch.get("input_ids", None) is not None else None,
+    #         "labels": batch.get("labels", None).detach().cpu()
+    #             if batch.get("labels", None) is not None else None,
+    #         "attention_mask": batch.get("attention_mask", None).detach().cpu()
+    #             if batch.get("attention_mask", None) is not None else None,
+    #     }
+    
+    #     torch.save(save_obj, save_path)
+    
+    #     print(f"Saved full attentions to {save_path}")
+
     return logits, attention_mask
 
 
-def answer_single_question(config, vis_processor, model, batch):
+def answer_single_question(config, vis_processor, model, batch, save_states=False):
 
     all_logits=[]; all_labels=[]
     for b in batch:
         sample = prepare_inputs(config, vis_processor, b)
-        logits, _ = forward_model(model, sample)
+        logits, _ = forward_model(model, sample, save_states=save_states)
         all_logits.append(logits)
         all_labels.append(sample["labels"])
     
