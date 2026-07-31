@@ -1,0 +1,7 @@
+model_name: "qwenvl"
+num_layers: 36
+layer_module_tmp: "model.language_model.layers.{}"
+mlp_module_tmp: "model.language_model.layers.{}.mlp"
+attn_module_tmp: "model.language_model.layers.{}.self_attn"
+norm_path: "model.language_model.norm"
+voc_path: "lm_head"

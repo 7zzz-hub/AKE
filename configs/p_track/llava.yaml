@@ -1,0 +1,7 @@
+model_name: "llava"
+num_layers: 32
+layer_module_tmp: "language_model.layers.{}"
+mlp_module_tmp: "language_model.layers.{}.mlp"
+attn_module_tmp: "language_model.layers.{}.self_attn"
+norm_path: "language_model.norm"
+voc_path: "language_model.lm_head"
