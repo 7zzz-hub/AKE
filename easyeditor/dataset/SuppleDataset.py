@@ -118,7 +118,11 @@ class SuppleDataset:
             elif self.config.model_class == "Blip2OPT":
                 return self.prompt.format(question) + answer
             elif self.config.model_class == "qwen-vl":
-                return self.processor.apply_chat_template(qwenvl_qa(image, question), tokenize=False) + " " + answer
+                return self.processor.apply_chat_template(
+                    qwenvl_qa(image, question),
+                    tokenize=False,
+                    add_generation_prompt=True,
+                ) + answer
         
 
         text_inputs = [concat_qa(image,p,t) for image, p, t in zip(images, prompts, targets)]

@@ -52,7 +52,7 @@ class AttributeDataset:
         })
 
 
-    def build_data(self):
+    def build_data(self,):
         
         with open(self.data_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -89,8 +89,7 @@ class AttributeDataset:
                 self.add_qa_pair(sample, "gen1", gen_image, record["gen1_q"], record["gen1_a"])
                 self.add_qa_pair(sample, "gen2", gen_image, record["gen2_q_1"], record["gen2_a"])
                 self.add_qa_pair(sample, "gen2", gen_image, record["gen2_q_2"], record["gen2_a"])
-
-            # masked image
+                
             samples.append(sample)
 
         return samples
@@ -118,7 +117,11 @@ class AttributeDataset:
             elif self.config.model_class == "Blip2OPT":
                 return self.prompt.format(question) + answer
             elif self.config.model_class == "qwen-vl":
-                return self.processor.apply_chat_template(qwenvl_qa(image, question), tokenize=False) + " " + answer
+                return self.processor.apply_chat_template(
+                    qwenvl_qa(image, question),
+                    tokenize=False,
+                    add_generation_prompt=True,
+                ) + " " + answer
         
 
         text_inputs = [concat_qa(image,p,t) for image, p, t in zip(images, prompts, targets)]

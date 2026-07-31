@@ -10,6 +10,17 @@ from transformers import GPT2Tokenizer, GPT2TokenizerFast
 
 LOG = logging.getLogger(__name__)
 
+def _last_decoder_layer_prefix(model):
+    """Return the parameter-name fragment for the last text decoder layer."""
+    config = model.config
+    num_layers = getattr(config, "num_hidden_layers", None)
+    if num_layers is None and hasattr(config, "text_config"):
+        num_layers = getattr(config.text_config, "num_hidden_layers", None)
+    if num_layers is None:
+        raise ValueError("Cannot determine the replacement model decoder depth")
+    return f".layers.{num_layers - 1}."
+
+
 
 def translate_tokens(tokens, from_tok, to_tok):
     tokens = tokens.masked_fill(tokens == -100, from_tok.pad_token_id)
@@ -70,16 +81,15 @@ class SERAC_MULTI(EditableModel):
                         torch_dtype=torch.bfloat16, 
                         attn_implementation="flash_attention_2")
                     
+                    self.replacement_layer_prefix = _last_decoder_layer_prefix(self.replacement)
                     for k, v in self.replacement.named_parameters():
-                        if '31' in k:
-                            v.requires_grad = True
-                        else:
-                            v.requires_grad = False
+                        v.requires_grad = self.replacement_layer_prefix in k
                 elif config.model_name == "qwen-vl":
                     from transformers import AutoModelForCausalLM
                     self.replacement = AutoModelForCausalLM.from_pretrained(config.small_name, trust_remote_code=True)
+                    self.replacement_layer_prefix = _last_decoder_layer_prefix(self.replacement)
                     for k, v in self.replacement.named_parameters():
-                        if '31' in k:
+                        if self.replacement_layer_prefix in k:
                             v.requires_grad = True
                         else:
                             v.requires_grad = False
@@ -88,8 +98,9 @@ class SERAC_MULTI(EditableModel):
                     from ..mPLUG_Owl2.mplug_owl2.model.modeling_llama2 import replace_llama_modality_adaptive
                     revert_llama_modality_adaptive()
                     self.replacement = transformers.AutoModelForCausalLM.from_pretrained(config.small_name, trust_remote_code=True)
+                    self.replacement_layer_prefix = _last_decoder_layer_prefix(self.replacement)
                     for k, v in self.replacement.named_parameters():
-                        if '31' in k:
+                        if self.replacement_layer_prefix in k:
                             v.requires_grad = True
                         else:
                             v.requires_grad = False
@@ -107,6 +118,9 @@ class SERAC_MULTI(EditableModel):
             assert isinstance(replacement, torch.nn.Module), "Rep is {type(replacement)}!"
             assert isinstance(replacement_tok, transformers.PreTrainedTokenizerBase), "Rep tok is {type(replacement_tok)}!"
             self.replacement, self.replacement_tok = replacement, replacement_tok
+
+        if self.replacement is not None and not hasattr(self, "replacement_layer_prefix") and config.model_name in ["minigpt4", "llava", "qwen-vl", "owl-2"]:
+            self.replacement_layer_prefix = _last_decoder_layer_prefix(self.replacement)
 
         if config.model_name == 'qwen-vl':
             self.qwenvl_tok = transformers.AutoTokenizer.from_pretrained(config.name, trust_remote_code=True, pad_token='<|endoftext|>')
@@ -144,7 +158,7 @@ class SERAC_MULTI(EditableModel):
                 del state_dict[f"replacement.{k}"]
         elif self.config.model_name == "minigpt4" or self.config.model_name == "llava" or self.config.model_name == "qwen-vl" or self.config.model_name == "owl-2":
             for k in self.replacement.state_dict().keys():
-                if '31' not in k:
+                if self.replacement_layer_prefix not in k:
                     del state_dict[f"replacement.{k}"]
         state_dict["model_config"] = self.model.config  # Include model config
         return state_dict
@@ -165,7 +179,7 @@ class SERAC_MULTI(EditableModel):
             res = super().load_state_dict(state_dict, False)
         # elif self.config.model_name == "qwen-vl" or self.config.model_name == "owl-2":
         #     for k in self.replacement.state_dict().keys():
-        #         if '31' not in k:
+        #         if self.replacement_layer_prefix not in k:
         #             del state_dict[f"replacement.{k}"]
         else:
             res = super().load_state_dict(state_dict, False)
@@ -173,7 +187,7 @@ class SERAC_MULTI(EditableModel):
         # We should only have missing keys for the model, and no unexpected keys
         def ok_to_miss(k):
             if self.config.model_name == "minigpt4" or self.config.model_name == "llava" or self.config.model_name == "qwen-vl" or self.config.model_name == "owl-2":
-                return k.startswith("model.") or (self.config.freeze_cntr and k.startswith("replacement.")) or (k.startswith("replacement.") and ("31" not in k))
+                return k.startswith("model.") or (self.config.freeze_cntr and k.startswith("replacement.")) or (k.startswith("replacement.") and self.replacement_layer_prefix not in k)
             return k.startswith("model.") or (self.config.freeze_cntr and k.startswith("replacement."))
         missing_keys = [k for k in res.missing_keys if not ok_to_miss(k)]
         assert len(missing_keys) == 0, f"Should only have missing keys for model: {missing_keys}."
@@ -204,7 +218,7 @@ class SERAC_MULTI(EditableModel):
                 params_extend = []
                 # alter
                 for k, v in self.replacement.named_parameters():
-                    if '31' in k:
+                    if self.replacement_layer_prefix in k:
                         params_extend.append(v)
                 model_params.extend(params_extend)
             else:
@@ -326,7 +340,7 @@ class SERAC_MULTI(EditableModel):
             if 'labels' in kwargs.keys():
                 rep_kwargs["labels"] = kwargs["labels"]
 
-        if self.config.model_name == "minigpt4" or self.config.model_name == "blip2" or self.config.model_name == "llava":
+        if self.config.model_name in ["minigpt4", "blip2", "llava", "qwen-vl"]:
             # Add 'ignore' labels for the prepended cache inputs
             pre = torch.full((kwargs["labels"].shape[0], rep_kwargs["input_ids"].shape[-1] - kwargs["labels"].shape[-1]), -100,
                              device=kwargs["labels"].device)
@@ -382,7 +396,7 @@ class SERAC_MULTI(EditableModel):
                 if self.config.model_name == "blip2" or self.config.model_name == "minigpt4" or self.config.model_name == "llava":
                     super_out = self.model(*inputs, **kwargs)
                 elif self.config.model_name == "qwen-vl":
-                    super_out = self.model(inputs[0]['inputs'], **kwargs)
+                    super_out = super().forward(*inputs, **kwargs)
                 elif "owl-2" in self.config.model_name.lower():
                     _input = inputs[0]
                     super_out = self.model(_input['input_ids'].to(self.config.device), 
@@ -569,18 +583,8 @@ class SERAC_MULTI(EditableModel):
                 else:
                     rep_cls_logits = _logits(self.replacement(**rep_cls_inputs))[:, -base_probs.shape[1]:, :]
             elif self.config.model_name == "qwen-vl":
-                rep_cls_labels = rep_cls_inputs.pop("labels")
-                image = inputs[0]["image"]
-
-                if image is not None:
-                    img_embeds = self.model.transformer.visual.encode(image)
-                    inputs_embeds = self.replacement.transformer.wte(rep_cls_inputs['input_ids'])
-                    inputs_embeds = torch.cat((img_embeds, inputs_embeds), dim=1)
-                    rep_cls_logits = self.replacement(
-                        inputs_embeds=inputs_embeds
-                    ).logits[:, -base_probs.shape[1]:, :]
-                else:
-                    rep_cls_logits = _logits(self.replacement(**rep_cls_inputs))[:, -base_probs.shape[1]:, :]
+                # Qwen2/3-VL visual embeddings cannot be passed directly to a text-only LM.
+                rep_cls_logits = _logits(self.replacement(**rep_cls_inputs))[:, -base_probs.shape[1]:, :]
             elif self.config.model_name == "owl-2":
                 rep_cls_labels = rep_cls_inputs.pop("labels")
                 image = inputs[0]["image"]
@@ -657,26 +661,51 @@ class SERAC_MULTI(EditableModel):
         #     rep_cls_logits = rep_cls_logits[:, -kwargs["labels"].shape[-1]:, :]
 
         if soft:
-            if base_probs.size(1) != rep_cls_logits.size(1):
-                rep_cls_logits = rep_cls_logits[:, -base_probs.size(1):, :]
             rep_weight = cls_sims
             if rep_cls_logits.device != base_probs.device:
                 rep_cls_logits = rep_cls_logits.to(base_probs.device)
             if rep_weight.device != base_probs.device:
                 rep_weight = rep_weight.to(base_probs.device)
             if base_probs.dim() == 3:
-                mixture_logits = ((1 - rep_weight) * base_probs + rep_weight * rep_cls_logits.softmax(-1) + eps).log()
+                # Qwen-VL expands visual tokens while the text replacement does not.
+                # Keep the unmatched VL prefix and mix the shared suffix only.
+                shared_len = min(base_probs.size(1), rep_cls_logits.size(1))
+                if shared_len <= 0:
+                    raise ValueError("Cannot align empty SERAC sequences")
+
+                base_start = base_probs.size(1) - shared_len
+                base_end = base_probs.size(1)
+                rep_start = rep_cls_logits.size(1) - shared_len
+                rep_end = rep_cls_logits.size(1)
+
+                base_prefix = base_probs[:, :base_start, :]
+                base_target = base_probs[:, base_start:base_end, :]
+                base_suffix = base_probs[:, base_end:, :]
+                rep_target = rep_cls_logits[:, rep_start:rep_end, :].softmax(-1)
+                mixed_target = ((1 - rep_weight) * base_target + rep_weight * rep_target + eps).log()
+                mixture_logits = torch.cat((
+                    base_prefix.clamp_min(eps).log(),
+                    mixed_target,
+                    base_suffix.clamp_min(eps).log(),
+                ), dim=1)
             else:
                 mixture_logits = ((1 - rep_weight) * base_probs + rep_weight * rep_cls_logits.sigmoid() + eps).log()
         else:
-            if base_logits.size(1) != rep_cls_logits.size(1):
-                rep_cls_logits = rep_cls_logits[:, -base_logits.size(1):, :]
             rep_idxs = torch.where(cls_sims > 0.5)[0]
-            mixture_logits = base_logits
+            mixture_logits = base_logits.clone()
             if rep_idxs.numel() > 0:
                 if rep_cls_logits.device != mixture_logits.device:
-                    rep_cls_logits.to(mixture_logits.device)
-                mixture_logits[rep_idxs] = rep_cls_logits[rep_idxs]
+                    rep_cls_logits = rep_cls_logits.to(mixture_logits.device)
+                shared_len = min(mixture_logits.size(1), rep_cls_logits.size(1))
+                if shared_len <= 0:
+                    raise ValueError("Cannot align empty SERAC sequences")
+                base_start = mixture_logits.size(1) - shared_len
+                base_end = mixture_logits.size(1)
+                rep_start = rep_cls_logits.size(1) - shared_len
+                rep_end = rep_cls_logits.size(1)
+                mixture_logits[rep_idxs, base_start:base_end, :] = rep_cls_logits[
+                    rep_idxs, rep_start:rep_end, :
+                ]
 
         torch.set_grad_enabled(grad_enabled)
         if return_logits_only:

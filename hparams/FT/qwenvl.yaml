@@ -65,7 +65,7 @@ val_interval: 5000
 early_stop_patience: 6000
 early_stop_key: "loss/total_edit_val"
 eval_only: True
-half: False
+half: True
 debug: False
 save: False
 verbose: True

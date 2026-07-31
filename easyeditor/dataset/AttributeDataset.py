@@ -8,7 +8,7 @@ import json
 
 
 class AttributeDataset:
-    def __init__(self, data_path, size, config, mask_flag=None, eval_mode=True):
+    def __init__(self, data_path, size, config, eval_mode=True):
         self.data_path = data_path
         self.config = config
         self.size = size
@@ -33,7 +33,7 @@ class AttributeDataset:
         elif config.model_class == "qwen-vl":
             self.prompt = "{} Please answer in one word."
 
-        self.samples = self.build_data(mask_flag=None)
+        self.samples = self.build_data()
 
 
     def add_qa_pair(self, sample, key, image, question, answer):
@@ -52,7 +52,7 @@ class AttributeDataset:
         })
 
 
-    def build_data(self, mask_flag=None):
+    def build_data(self,):
         
         with open(self.data_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -89,14 +89,7 @@ class AttributeDataset:
                 self.add_qa_pair(sample, "gen1", gen_image, record["gen1_q"], record["gen1_a"])
                 self.add_qa_pair(sample, "gen2", gen_image, record["gen2_q_1"], record["gen2_a"])
                 self.add_qa_pair(sample, "gen2", gen_image, record["gen2_q_2"], record["gen2_a"])
-
-            # masked image & no background
-            if mask_flag is not None:
-                masked_image = os.path.join(self.config.masked_dir, record["masked_image"])
-                no_bg_img = self.config.no_bg_image
-                self.add_qa_pair(sample, "masked_img", masked_image, record["src"], record["alt"])
-                self.add_qa_pair(sample, "no_bg_img", no_bg_img, record["src"], "_")
-
+                
             samples.append(sample)
 
         return samples
@@ -124,7 +117,11 @@ class AttributeDataset:
             elif self.config.model_class == "Blip2OPT":
                 return self.prompt.format(question) + answer
             elif self.config.model_class == "qwen-vl":
-                return self.processor.apply_chat_template(qwenvl_qa(image, question), tokenize=False) + " " + answer
+                return self.processor.apply_chat_template(
+                    qwenvl_qa(image, question),
+                    tokenize=False,
+                    add_generation_prompt=True,
+                ) + answer
         
 
         text_inputs = [concat_qa(image,p,t) for image, p, t in zip(images, prompts, targets)]

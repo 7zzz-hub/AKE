@@ -1,35 +1,15 @@
 device: 0
 
-name: huggingface_cache/Qwen2-VL
+name: huggingface_cache/Qwen3-VL
 model_name: qwen-vl
 model_class: qwen-vl
-small_name: huggingface_cache/Qwen-7B
+small_name: huggingface_cache/Qwen3-8B
 tokenizer_class: QWenTokenizer
-tokenizer_name: huggingface_cache/Qwen2-VL
+tokenizer_name: huggingface_cache/Qwen3-VL
 cls_name: huggingface_cache/distilbert-base-cased/
 cls_class: AutoModel 
-inner_params:
-# - transformer.h.29.mlp.w1.weight
-# - transformer.h.29.mlp.w2.weight
-# - transformer.h.29.mlp.c_proj.weight
-# - transformer.h.30.mlp.w1.weight
-# - transformer.h.30.mlp.w2.weight
-# - transformer.h.30.mlp.c_proj.weight
-# - transformer.h.31.mlp.w1.weight
-# - transformer.h.31.mlp.w2.weight
-# - transformer.h.31.mlp.c_proj.weight
+inner_params: []
 
-- model.layers.25.mlp.gate_proj.weight
-- model.layers.25.mlp.up_proj.weight
-- model.layers.25.mlp.down_proj.weight
-- model.layers.26.mlp.gate_proj.weight
-- model.layers.26.mlp.up_proj.weight
-- model.layers.26.mlp.down_proj.weight
-- model.layers.27.mlp.gate_proj.weight
-- model.layers.27.mlp.up_proj.weight
-- model.layers.27.mlp.down_proj.weight
- 
-# Method
 alg: SERAC_MULTI
 lr: 1e-5
 edit_lr: 1e-2

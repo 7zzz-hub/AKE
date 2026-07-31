@@ -91,7 +91,6 @@ def forward_model(model, batch, save_states=False):
     #     save_path = os.path.join(save_dir, f"attentions_{timestamp}.pt")
     
     #     # outputs.attentions:
-    #     # tuple(num_layers)，每层 shape 通常为 [B, num_heads, seq_len, seq_len]
     #     attentions = [
     #         attn.detach().float().cpu()
     #         for attn in outputs.output_attentions
