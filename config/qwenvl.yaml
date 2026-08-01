@@ -1,35 +1,28 @@
-# config.yaml
-
-# Model related parameters
-model_name: "qwenvl"
-model_path: "/root/autodl-tmp/mllm_ke/AKE-main/huggingface_cache/Qwen2.5-VL"
-device: "cuda"
-
-# Data related parameters
-img_root: "/root/autodl-tmp/mllm_ke/AKE-main/data/CLEVR_CoGenT_v1.0/images"
-img_root_modified: "/root/autodl-tmp/mllm_ke/akedit/dataset/images_modified/qwenvl"
-img_masks: "/root/autodl-tmp/mllm_ke/akedit/dataset/images_masks/qwenvl"
+model_name: qwen-vl
+model_path: /root/autodl-tmp/mllm_ke/AKE-main/huggingface_cache/Qwen3-VL
+device: cuda
+img_root: /root/autodl-tmp/mllm_ke/AKE-main/data/clevr_dataset/CLEVR_CoGenT_v1.0/images
+img_root_modified: /root/autodl-tmp/mllm_ke/akedit/dataset/images_modified/qwenvl
+img_masks: /root/autodl-tmp/mllm_ke/akedit/dataset/images_masks/qwenvl
 image_size: 448
-patch_num: 729
-
-dataset_path: "/root/autodl-tmp/mllm_ke/AKE-main/data/qwenvl_new/val1_dataset.json"
-image_direction_dataset_dir: "/root/autodl-tmp/mllm_ke/akedit/dataset/CLEVR_CoGenT_v1.0/images/loc_data"
-
-# Training related parameters
+# Runtime mask alignment uses image_grid_thw and spatial_merge_size.
+patch_num: 1024
+dataset_path: /root/autodl-tmp/mllm_ke/akedit/dataset/dataset/qwen/val2_dataset.json
+image_direction_dataset_dir: /root/autodl-tmp/mllm_ke/akedit/dataset/CLEVR_CoGenT_v1.0/images/trainA
 lr: 0.0001
 epochs: 10
 weight_decay: 0.01
 max_length: 512
-
-# Editing method parameters
-edit_layers: 15
-
-# Path parameters
-output_dir: "/root/autodl-tmp/mllm_ke/akedit/results"
-cache_dir: "./cache"
-log_dir: "./logs"
-
-# Other parameters
+edit_layers: 13
+output_dir: /root/autodl-tmp/mllm_ke/akedit/results/qwenvl
+cache_dir: ./cache
+log_dir: ./logs
 seed: 42
 debug: false
 resume: null
+nsteps: 50
+feature_loss_weight: 1.0
+token_loss_weight: 1.0
+token_locality_loss_weight: 0.1
+restrict_rank: true
+rank: 8

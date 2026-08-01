@@ -40,14 +40,29 @@ def get_nearest_PD(A, nit=10):
     return Yk
 
         
-def zca_from_cov(cov):
-    evals, evecs = torch.linalg.eigh(cov.double(), UPLO='U')
-    zca = torch.mm(torch.mm(evecs, torch.diag
-                            (evals.sqrt().clamp(1e-20).reciprocal())),
-                   evecs.t()).to(cov.dtype)
-    return zca
+def zca_from_cov(cov, relative_floor=1e-6):
+    """Build a stable ZCA whitening matrix from a second moment."""
+    dtype = cov.dtype
+    cov64 = cov.double()
+    cov64 = 0.5 * (cov64 + cov64.t())
+    evals, evecs = torch.linalg.eigh(cov64, UPLO='U')
+    floor = evals.max().clamp_min(torch.finfo(evals.dtype).eps) * relative_floor
+    inv_sqrt = evals.clamp_min(floor).rsqrt()
+    return ((evecs * inv_sqrt.unsqueeze(0)) @ evecs.t()).to(dtype)
+
 
 def zca_whitened_query_key(matrix, k):
+    compute_dtype = torch.float32
+    matrix = matrix.to(device=k.device, dtype=compute_dtype)
+    k_float = k.to(compute_dtype)
     if len(k.shape) == 1:
-        return torch.mm(matrix, k[:, None])[:, 0]
-    return torch.mm(matrix, k.permute(1, 0)).permute(1, 0)
+        return torch.mm(matrix, k_float[:, None])[:, 0]
+    return torch.mm(matrix, k_float.permute(1, 0)).permute(1, 0)
+
+
+def zca_unwhitened_direction(matrix, direction):
+    """Map whitened-coordinate directions back to activation space."""
+    is_vector = direction.dim() == 1
+    rhs = direction[:, None] if is_vector else direction.t()
+    mapped = torch.linalg.solve(matrix.double(), rhs.double()).to(direction.dtype)
+    return mapped[:, 0] if is_vector else mapped.t()

@@ -3,11 +3,14 @@ import sys
 
 import torch
 import torch as ch
+import torch.nn.functional as F
 from torchvision.transforms import ToPILImage
 import numpy as np
 from tqdm import tqdm
 
 import helpers.math_helpers as math
+from helpers.qwen_helpers import (get_qwen_mlp_output, get_qwen_visual,
+                                  is_qwen_vl, mask_to_qwen_patch_order)
 from tools import tally, pbar, renormalize, imgviz  
 
 def _clear_specific_hooks(hooks):
@@ -28,7 +31,7 @@ def _add_necessary_hooks(config, model, layernum, features):
         features['layer_norm2_pre'] = input[0]
         
     def hook_output(module, input, output):
-        features['output_post'] = output[0]
+        features['output_post'] = output[0] if isinstance(output, tuple) else output
 
     if config.model_name == 'llava':
         hook1 = model.model.vision_tower.vision_tower.vision_model.encoder.layers[layernum].mlp.fc2.register_forward_hook(hook_fc2)
@@ -38,9 +41,12 @@ def _add_necessary_hooks(config, model, layernum, features):
         hook1 = model.vision_model.encoder.layers[layernum].mlp.fc2.register_forward_hook(hook_fc2)
         hook2 = model.vision_model.encoder.layers[layernum].layer_norm2.register_forward_hook(hook_layernorm)
         hook3 = model.vision_model.encoder.layers[layernum].register_forward_hook(hook_output)
-    elif config.model_name == 'qwenvl':
-        hook1 = model.visual.blocks[layernum].mlp.down_proj.register_forward_hook(hook_fc2)
-        hook2 = model.visual.blocks[layernum-1].norm2.register_forward_hook(hook_layernorm)
+    elif is_qwen_vl(config.model_name):
+        visual = get_qwen_visual(model)
+        block = visual.blocks[layernum]
+        hook1 = get_qwen_mlp_output(block).register_forward_hook(hook_fc2)
+        hook2 = block.norm2.register_forward_hook(hook_layernorm)
+        hook3 = block.register_forward_hook(hook_output)
 
     # hooks.append(hook1)
     hooks.extend([hook1, hook2, hook3])
@@ -55,8 +61,13 @@ def get_keys(batch, features, context_mod=None, device='cuda',
     def get_keys_sub():
         # context_mod(batch['pixel_values'], grid_thw=batch['grid_thw'])
     
-        assert len(batch.shape) == 4
-        context_mod(batch.to(device))
+        if isinstance(batch, dict):
+            dtype = next(context_mod.parameters()).dtype
+            context_mod(batch['pixel_values'].to(device=device, dtype=dtype),
+                        grid_thw=batch['image_grid_thw'].to(device))
+        else:
+            assert len(batch.shape) == 4
+            context_mod(batch.to(device))
 
         if loc == 'input':
             if type(features['fc2_pre']) == tuple:
@@ -119,7 +130,8 @@ def calculate_2nd_moment(val_loader, context_model, features,
                                 batch_size=78400, device='cuda'):
                       
     total_count = 0
-    for batch_idx, (zbatch, _) in tqdm(enumerate(val_loader), total=len(val_loader)):
+    for batch_idx, batch in tqdm(enumerate(val_loader), total=len(val_loader)):
+        zbatch = batch[0] if isinstance(batch, (tuple, list)) else batch
         acts = get_keys(zbatch, features,
                         context_mod=context_model, 
                         device=device)
@@ -134,20 +146,25 @@ def calculate_2nd_moment(val_loader, context_model, features,
                 sep_pix = acts
         
         if batch_idx == 0:
-            moment = torch.zeros((sep_pix.shape[1], sep_pix.shape[1])).to(sep_pix.device)
-        
-        total_count += sep_pix.shape[0]
+            moment = torch.zeros(
+                (sep_pix.shape[1], sep_pix.shape[1]),
+                device=sep_pix.device,
+                dtype=torch.float64,
+            )
+
         BC = int(np.ceil(sep_pix.shape[0] / batch_size))
-        
         for iidx in range(BC):
-            block = sep_pix[iidx*batch_size:(iidx+1)*batch_size]
-            block = block.float()
-            moment += block.T @ block
-            moment /= total_count
-            
-            assert not torch.any(torch.isnan(moment)), "Moment contains NaNs!"
-    
-    return moment
+            block = sep_pix[iidx * batch_size:(iidx + 1) * batch_size].double()
+            moment.addmm_(block.t(), block)
+
+        total_count += sep_pix.shape[0]
+        assert not torch.any(torch.isnan(moment)), "Moment contains NaNs!"
+
+    if total_count == 0:
+        raise ValueError("Cannot compute a second moment from an empty loader")
+    moment.div_(total_count)
+    return moment.float()
+
 
 
 def get_matches(context_k, ims, features, context_model, K=200, q=0.99):
@@ -177,18 +194,34 @@ def get_context_key(source_imgs,
     # Fairly ok
     with torch.no_grad():
         accumulated_obs = []
-        for img, mask in zip(source_imgs, source_masks):
-            k_acts = get_keys(img[None,...], features,
-                              context_mod=context_model,
+        is_qwen = isinstance(source_imgs, dict)
+        image_batches = [source_imgs] if is_qwen else [img[None, ...] for img in source_imgs]
+        for image_batch, mask in zip(image_batches, source_masks):
+            k_acts = get_keys(image_batch, features, context_mod=context_model,
                               device=device, loc=loc)
             if type(k_acts) == tuple:
                 k_acts = k_acts[0]
 
-            num_tokens = k_acts.shape[1] - 1  # exclude cls token
-            patch_size = int(num_tokens**0.5)
-            area_patch = renormalize.from_image(ToPILImage()(mask.cpu()), target='pt', size=(patch_size, patch_size))[0].view(-1,1) 
-            cls_mask = torch.tensor([[0.0]], device=area_patch.device)  # or 1.0
-            area = torch.cat([cls_mask, area_patch], dim=0).cuda()
+            token_count = k_acts.shape[0] if k_acts.dim() == 2 else k_acts.shape[1]
+            num_patches = token_count if is_qwen else token_count - 1
+            if is_qwen:
+                grid = image_batch['image_grid_thw'][0].tolist()
+                temporal, grid_h, grid_w = map(int, grid)
+                if temporal * grid_h * grid_w != num_patches:
+                    raise ValueError(
+                        f'Qwen token grid {grid} does not match {num_patches} visual tokens')
+                area_patch = mask_to_qwen_patch_order(
+                    mask[None].float(), grid,
+                    context_model.spatial_merge_size).reshape(-1, 1)
+            else:
+                patch_size = int(num_patches**0.5)
+                if patch_size * patch_size != num_patches:
+                    raise ValueError(
+                        f'Expected a square image token grid, got {num_patches} tokens')
+                area_patch = F.adaptive_avg_pool2d(
+                    mask[None].float(), (patch_size, patch_size))[0, 0].reshape(-1, 1)
+            area = area_patch.cuda() if is_qwen else torch.cat([
+                torch.zeros((1, 1), device=area_patch.device), area_patch], dim=0).cuda()
 
             accumulated_obs.append((k_acts.reshape(-1, k_acts.shape[-1]), area))
         
@@ -201,7 +234,8 @@ def get_context_key(source_imgs,
 
         _, _, q = all_zca_k.svd(compute_uv=True)
         top_e_vec = q[:, :rank]
-        row_dirs = math.zca_whitened_query_key(matrix, top_e_vec.t())
+        # Map SVD directions out of whitened coordinates before projection.
+        row_dirs = math.zca_unwhitened_direction(matrix, top_e_vec.t())
         just_avg = (all_zca_k).sum(0)
         q, r = torch.qr(row_dirs.permute(1, 0))
         signs = (q * just_avg[:, None]).sum(0).sign()

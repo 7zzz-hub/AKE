@@ -1,7 +1,9 @@
 from helpers import context_helpers
+from helpers.qwen_helpers import get_qwen_mlp_output, get_qwen_visual, is_qwen_vl
 
+import os
 import torch
-from transformers import AutoProcessor, AutoModelForCausalLM, AutoTokenizer, AutoModelForVisualQuestionAnswering
+from transformers import AutoProcessor, AutoModelForCausalLM, AutoTokenizer, Blip2ForConditionalGeneration, Blip2Processor, BlipImageProcessor
 from transformers import AutoTokenizer, AutoProcessor
 from qwen_vl_utils import process_vision_info
 
@@ -27,18 +29,30 @@ def eval_accuracy(model, loader, alt=False, normalize=None):
     
 def load_classifier(config, layernum):
 
-    if config.model_name == 'qwenvl':
-        from transformers import Qwen2_5_VLForConditionalGeneration
-        tokenizer = AutoTokenizer.from_pretrained(config.model_path)
-        model = Qwen2_5_VLForConditionalGeneration.from_pretrained(config.model_path)
+    if is_qwen_vl(config.model_name):
+        if not os.path.isdir(config.model_path):
+            raise FileNotFoundError(
+                f"Qwen-VL model directory does not exist: {config.model_path}")
+        import transformers
+        if not hasattr(transformers, "AutoModelForImageTextToText"):
+            raise RuntimeError(
+                "Installed transformers does not provide the Qwen-VL auto model")
+        model_class = transformers.AutoModelForImageTextToText
+        tokenizer = AutoTokenizer.from_pretrained(config.model_path, use_fast=False)
+        model = model_class.from_pretrained(
+            config.model_path, torch_dtype="auto", device_map="auto")
         processor = AutoProcessor.from_pretrained(config.model_path)
         image_processor = processor.image_processor
 
         model.requires_grad_(False)
-        context_model = model.visual
-        trg_model = model.visual.blocks[layernum].mlp.down_proj
+        context_model = get_qwen_visual(model)
+        if not 0 <= layernum < len(context_model.blocks):
+            raise ValueError(
+                f"edit_layers={layernum} is outside the Qwen-VL vision tower "
+                f"with {len(context_model.blocks)} blocks")
+        trg_model = get_qwen_mlp_output(context_model.blocks[layernum])
         trg_model.requires_grad_(True)
-    
+
     elif config.model_name == 'llava':
         tokenizer, model, image_processor, _ = load_pretrained_model(
             model_path=config.model_path,
@@ -47,15 +61,18 @@ def load_classifier(config, layernum):
             torch_dtype=torch.float16)
         processor = image_processor
         
-        model.model.requires_grad_(False)
+        model.requires_grad_(False)
         context_model = model.model.vision_tower
         trg_model = model.model.vision_tower.vision_tower.vision_model.encoder.layers[layernum].mlp.fc2
         trg_model.requires_grad_(True)
 
     elif config.model_name == 'blip2':
-        tokenizer = AutoTokenizer.from_pretrained(config.model_path)
-        processor = AutoProcessor.from_pretrained(config.model_path)
-        model = AutoModelForVisualQuestionAnswering.from_pretrained(config.model_path).cuda()
+        tokenizer = AutoTokenizer.from_pretrained(config.model_path, use_fast=False)
+        image_processor = BlipImageProcessor.from_pretrained(config.model_path)
+        processor = Blip2Processor(image_processor=image_processor, tokenizer=tokenizer)
+        model = Blip2ForConditionalGeneration.from_pretrained(
+            config.model_path, torch_dtype=torch.float16).cuda()
+        processor.num_query_tokens = model.config.num_query_tokens
         image_processor = processor.image_processor
 
         model.requires_grad_(False)
