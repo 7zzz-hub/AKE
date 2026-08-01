@@ -14,7 +14,7 @@ def build_qwenvl_message(image, question):
             {"type": "image", "image": image, "min_pixels": 256*28*28, "max_pixels": 1280*28*28,},
             {
                 "type": "text",
-                "text": question + " Please answer in one word."
+                "text": question + " Please answer briefly."
             }
         ]
     }
@@ -56,7 +56,19 @@ def prepare_inputs(config, vis_processor, batch):
 
 def forward_model(model, batch, save_states=False):
 
-    outputs = model(batch)
+    model_kwargs = {}
+    model_name = getattr(getattr(model, "config", None), "model_name", None)
+    if model_name == "qwen-vl":
+        # All callers score only answer tokens. Avoid projecting every visual
+        # and prompt position to the 151k vocabulary. Keep one extra position
+        # because the causal loss shifts logits by one token.
+        labels = batch.get("labels")
+        if isinstance(labels, torch.Tensor):
+            model_kwargs["logits_to_keep"] = labels.shape[-1] + 1
+        # This path scores or trains; it does not autoregressively generate.
+        model_kwargs["use_cache"] = False
+
+    outputs = model(batch, **model_kwargs)
     if isinstance(outputs, torch.Tensor):
         logits = outputs
         attention_mask = torch.ones(logits.shape[:2], device=logits.device)

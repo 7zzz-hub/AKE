@@ -340,7 +340,7 @@ class SERAC_MULTI(EditableModel):
             if 'labels' in kwargs.keys():
                 rep_kwargs["labels"] = kwargs["labels"]
 
-        if self.config.model_name in ["minigpt4", "blip2", "llava", "qwen-vl"]:
+        if self.config.model_name in ["minigpt4", "blip2", "llava"]:
             # Add 'ignore' labels for the prepended cache inputs
             pre = torch.full((kwargs["labels"].shape[0], rep_kwargs["input_ids"].shape[-1] - kwargs["labels"].shape[-1]), -100,
                              device=kwargs["labels"].device)
@@ -583,8 +583,79 @@ class SERAC_MULTI(EditableModel):
                 else:
                     rep_cls_logits = _logits(self.replacement(**rep_cls_inputs))[:, -base_probs.shape[1]:, :]
             elif self.config.model_name == "qwen-vl":
-                # Qwen2/3-VL visual embeddings cannot be passed directly to a text-only LM.
-                rep_cls_logits = _logits(self.replacement(**rep_cls_inputs))[:, -base_probs.shape[1]:, :]
+                rep_cls_labels = rep_cls_inputs.pop("labels")
+                qwen_inputs = inputs[0].get("inputs", {})
+                pixel_values = qwen_inputs.get("pixel_values")
+                image_grid_thw = qwen_inputs.get("image_grid_thw")
+
+                if pixel_values is not None and image_grid_thw is not None:
+                    # The base VL model is not optimized by SERAC. Building a
+                    # graph here retains the complete vision tower for backward.
+                    with torch.no_grad():
+                        image_features = self.model.get_image_features(
+                            pixel_values.to(self.config.device),
+                            image_grid_thw.to(self.config.device),
+                        )
+                    if (
+                        isinstance(image_features, tuple)
+                        and len(image_features) == 2
+                        and isinstance(image_features[1], (tuple, list))
+                    ):
+                        image_features = image_features[0]
+                    if isinstance(image_features, (tuple, list)):
+                        image_feature_list = list(image_features)
+                        visual_lengths = [feature.size(0) for feature in image_feature_list]
+                        img_embeds = torch.nn.utils.rnn.pad_sequence(
+                            image_feature_list, batch_first=True
+                        )
+                    else:
+                        img_embeds = image_features
+                        visual_lengths = None
+
+                    input_ids = rep_cls_inputs["input_ids"].to(self.config.device)
+                    text_embeds = self.replacement.get_input_embeddings()(input_ids)
+                    img_embeds = img_embeds.to(
+                        device=text_embeds.device,
+                        dtype=text_embeds.dtype,
+                    )
+                    if img_embeds.dim() == 2:
+                        img_embeds = img_embeds.unsqueeze(0)
+                    if img_embeds.size(0) != text_embeds.size(0):
+                        raise ValueError(
+                            f"QwenVL visual/text batch mismatch: "
+                            f"{img_embeds.shape} vs {text_embeds.shape}"
+                        )
+
+                    inputs_embeds = torch.cat((img_embeds, text_embeds), dim=1)
+                    if visual_lengths is None:
+                        visual_attention = torch.ones(
+                            img_embeds.shape[:2],
+                            dtype=rep_cls_inputs["attention_mask"].dtype,
+                            device=img_embeds.device,
+                        )
+                    else:
+                        visual_attention = (
+                            torch.arange(img_embeds.size(1), device=img_embeds.device)[None, :]
+                            < torch.tensor(visual_lengths, device=img_embeds.device)[:, None]
+                        ).to(dtype=rep_cls_inputs["attention_mask"].dtype)
+                    attention_mask = torch.cat(
+                        (visual_attention, rep_cls_inputs["attention_mask"]),
+                        dim=1,
+                    )
+                    rep_cls_logits = self.replacement(
+                        inputs_embeds=inputs_embeds,
+                        attention_mask=attention_mask,
+                        use_cache=False,
+                        logits_to_keep=base_probs.shape[1],
+                    ).logits
+                else:
+                    rep_cls_logits = _logits(
+                        self.replacement(
+                            **rep_cls_inputs,
+                            use_cache=False,
+                            logits_to_keep=base_probs.shape[1],
+                        )
+                    )
             elif self.config.model_name == "owl-2":
                 rep_cls_labels = rep_cls_inputs.pop("labels")
                 image = inputs[0]["image"]

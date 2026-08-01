@@ -82,7 +82,11 @@ def multiclass_log_probs(config, pred, targ, shift=False):
     log_prob = (unmasked_log_probs * mask.float()).sum() / n_tokens
     prob = (unmasked_log_probs.exp() * mask.float()).sum() / n_tokens
 
-    exact_match_acc = sum([pred==targ for pred,targ in zip(pred_token,targ_token)])
+    exact_match_acc = (
+        sum(pred == targ for pred, targ in zip(pred_token, targ_token))
+        / len(pred_token)
+        if pred_token else 0.0
+    )
 
     return {
         "acc": acc,

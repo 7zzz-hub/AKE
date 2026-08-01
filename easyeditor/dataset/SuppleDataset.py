@@ -28,11 +28,11 @@ class SuppleDataset:
         
         # prompt
         if config.model_class == "LLaVA":
-            self.prompt = "USER: <image>\n{} Please answer in one word. ASSISTANT:"
+            self.prompt = "USER: <image>\n{} Please answer briefly. ASSISTANT:"
         elif config.model_class == "Blip2OPT":
-            self.prompt = "Question: {} Please answer in one word. Short answer:"
+            self.prompt = "Question: {} Please answer briefly. Short answer:"
         elif config.model_class == "qwen-vl":
-            self.prompt = "{} Please answer in one word."
+            self.prompt = "{} Please answer briefly."
 
         self.samples = self.build_data()
 
@@ -127,7 +127,14 @@ class SuppleDataset:
 
         text_inputs = [concat_qa(image,p,t) for image, p, t in zip(images, prompts, targets)]
         prompts_len = [len(self.tok.encode(self.prompt.format(p), add_special_tokens=False)) for p in prompts] 
-        labels = self.tok(targets, padding=True, return_tensors="pt", add_special_tokens=False)["input_ids"]
+        labels = self.tok(
+            targets,
+            padding=True,
+            return_tensors="pt",
+            add_special_tokens=False,
+        )["input_ids"]
+        # Padding is not part of the answer; the scoring/loss code ignores only -100.
+        labels[labels == self.tok.pad_token_id] = -100
 
         return {
             "image": images,

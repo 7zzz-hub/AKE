@@ -3,3 +3,5 @@ results/*
 huggingface_cache/*
 hidden_states/*
 data/supple_dataset/*image*
+data/kaggle.py
+upload.py
