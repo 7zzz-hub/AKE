@@ -2,4 +2,3 @@ data/
 records/*
 eval_results/*
 huggingface_cache/*
-utils/
