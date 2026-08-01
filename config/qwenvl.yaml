@@ -8,7 +8,10 @@ image_size: 448
 # Runtime mask alignment uses image_grid_thw and spatial_merge_size.
 patch_num: 1024
 dataset_path: /root/autodl-tmp/mllm_ke/akedit/dataset/dataset/qwen/val2_dataset.json
+sample_limit: 10
 image_direction_dataset_dir: /root/autodl-tmp/mllm_ke/akedit/dataset/CLEVR_CoGenT_v1.0/images/trainA
+direction_samples: 30000
+zm_k_path: /root/autodl-tmp/mllm_ke/akedit/zm_k/qwen-vl/Vzm_k_13_30k.pt
 lr: 0.0001
 epochs: 10
 weight_decay: 0.01
@@ -22,7 +25,7 @@ debug: false
 resume: null
 nsteps: 50
 feature_loss_weight: 1.0
-token_loss_weight: 1.0
+token_loss_weight: 0.1
 token_locality_loss_weight: 0.1
 restrict_rank: true
 rank: 8

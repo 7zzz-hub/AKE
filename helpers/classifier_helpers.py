@@ -40,7 +40,7 @@ def load_classifier(config, layernum):
         model_class = transformers.AutoModelForImageTextToText
         tokenizer = AutoTokenizer.from_pretrained(config.model_path, use_fast=False)
         model = model_class.from_pretrained(
-            config.model_path, torch_dtype="auto", device_map="auto")
+            config.model_path, dtype=torch.float16, device_map="auto")
         processor = AutoProcessor.from_pretrained(config.model_path)
         image_processor = processor.image_processor
 
